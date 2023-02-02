@@ -53,6 +53,11 @@ export class WardenService {
   public async createAccount(contact: WardenContactEntry, sendCode?: boolean, label?: string, tags?: string[]): Promise<string> {
     let rval: string = null;
     if (StringRatchet.trimToNull(contact?.value) && contact?.type) {
+      const old: WardenEntry = await this.storageProvider.findEntryByContact(contact);
+      if (!!old) {
+        ErrorRatchet.throwFormattedErr('Cannot create - account already exists for %j', contact);
+      }
+
       const prov: WardenMessageSendingProvider<any> = this.senderForContact(contact);
       if (!prov) {
         ErrorRatchet.throwFormattedErr('Cannot create - no sending provider for type %s', contact.type);
