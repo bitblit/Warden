@@ -1,5 +1,5 @@
-import { WardenEntry } from '../model/warden-entry';
-import { WardenContactEntry } from '../model/warden-contact-entry';
+import { WardenEntry } from '../../common/model/warden-entry';
+import { WardenContactEntry } from '../../common/model/warden-contact-entry';
 
 /**
  * Classes implementing WardenStorageProvider perform store and

@@ -1,8 +1,8 @@
 //    Service for interacting with positions for a given user
-import { WardenContactEntry } from '../model/warden-contact-entry';
+import { WardenContactEntry } from '../../common/model/warden-contact-entry';
 import { WardenStorageProvider } from './warden-storage-provider';
 import { WardenS3SingleFileStorageProviderOptions } from './warden-s3-single-file-storage-provider-options';
-import { WardenEntry } from '../model/warden-entry';
+import { WardenEntry } from '../../common/model/warden-entry';
 import { PutObjectOutput } from 'aws-sdk/clients/s3';
 import {S3CacheRatchet} from "@bitblit/ratchet/aws";
 import {StringRatchet} from "@bitblit/ratchet/common";

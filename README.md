@@ -23,7 +23,7 @@ You may wish to read [the changelog](CHANGELOG.md)
 TBD
 
 ### Barrel Files
-A Note on barrel files - All of Ratchet's barrel files are one level down. This is because otherwise everything
+A Note on barrel files - All of Warden's barrel files are one level down. This is because otherwise everything
 I said above about transitive dependencies gets thrown out the window if you put them all in one big barrel file
 
 # Testing

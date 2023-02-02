@@ -1,10 +1,10 @@
 import {WardenStorageProvider} from "./provider/warden-storage-provider";
 import {JestRatchet} from "@bitblit/ratchet/jest";
 import {WardenService} from "./warden-service";
-import {WardenServiceOptions} from "./model/warden-service-options";
-import {WardenContactType} from "./model/warden-contact-type";
+import {WardenServiceOptions} from "../common/model/warden-service-options";
+import {WardenContactType} from "../common/model/warden-contact-type";
 import {WardenMessageSendingProvider} from "./provider/warden-message-sending-provider";
-import {WardenEntry} from "./model/warden-entry";
+import {WardenEntry} from "../common/model/warden-entry";
 
 let mockWardenStorageProvider: jest.Mocked<WardenStorageProvider>;
 let mockWardenEmailSender: jest.Mocked<WardenMessageSendingProvider<any>>;

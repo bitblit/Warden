@@ -17,18 +17,20 @@ import {
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
 } from '@simplewebauthn/typescript-types';
-import { WardenServiceOptions } from './model/warden-service-options';
-import { WardenStorageProvider } from './provider/warden-storage-provider';
-import { WardenContactEntry } from './model/warden-contact-entry';
-import { WardenEntry } from './model/warden-entry';
-import { WardenStoreRegistrationResponse } from './model/warden-store-registration-response';
-import { WardenWebAuthnEntry } from './model/warden-web-authn-entry';
-import { WardenMessageSendingProvider } from './provider/warden-message-sending-provider';
-import { WardenLoginRequest } from './model/warden-login-request';
-import { WardenStoreRegistrationResponseType } from './model/warden-store-registration-response-type';
-import { WardenCustomerMessageType } from './model/warden-customer-message-type';
+import {WardenServiceOptions} from '../common/model/warden-service-options';
+import {WardenStorageProvider} from './provider/warden-storage-provider';
+import {WardenContactEntry} from '../common/model/warden-contact-entry';
+import {WardenEntry} from '../common/model/warden-entry';
+import {WardenStoreRegistrationResponse} from '../common/model/warden-store-registration-response';
+import {WardenWebAuthnEntry} from '../common/model/warden-web-authn-entry';
+import {WardenMessageSendingProvider} from './provider/warden-message-sending-provider';
+import {WardenLoginRequest} from '../common/model/warden-login-request';
+import {WardenStoreRegistrationResponseType} from '../common/model/warden-store-registration-response-type';
+import {WardenCustomerMessageType} from '../common/model/warden-customer-message-type';
 import {ExpiringCode, ExpiringCodeProvider, ExpiringCodeRatchet} from "@bitblit/ratchet/aws";
 import {Base64Ratchet, ErrorRatchet, Logger, RequireRatchet, StringRatchet} from "@bitblit/ratchet/common";
+import {WardenCommandResponse} from "../common/command/warden-command-response";
+import {WardenCommand} from "../common/command/warden-command";
 
 /**
  * Systems fully using WardenService need to create these endpoints:
@@ -47,6 +49,51 @@ export class WardenService {
     private expiringCodeProvider: ExpiringCodeProvider
   ) {
     this.expiringCodeRatchet = new ExpiringCodeRatchet(this.expiringCodeProvider);
+  }
+
+  public async processCommandStringToString(cmdString: string, origin: string, loggedInUserId: string): Promise<string> {
+    let rval: string = null;
+    try {
+      const cmd: WardenCommand = JSON.parse(cmdString);
+      const resp: WardenCommandResponse = await this.processCommandToResponse(cmd, origin, loggedInUserId);
+      rval = JSON.stringify(resp);
+    } catch (err) {
+      // Just cast it directly
+      rval = JSON.stringify({error: err} as WardenCommandResponse);
+    }
+    return rval;
+  }
+
+  public async processCommandToResponse(cmd: WardenCommand, origin: string, loggedInUserId: string): Promise<WardenCommandResponse> {
+    let rval: WardenCommandResponse = null;
+    if (cmd) {
+      if (cmd.sendExpiringValidationToken) {
+        rval = {sendExpiringValidationToken: await this.sendExpiringValidationToken(cmd.sendExpiringValidationToken)};
+      } else if (cmd.generateWebAuthnAuthenticationChallenge) {
+        const tmp: PublicKeyCredentialRequestOptionsJSON = await this.generateAuthenticationOptionsForContact(cmd.generateWebAuthnAuthenticationChallenge, origin);
+        rval = {generateWebAuthnAuthenticationChallenge: {dataAsJson: JSON.stringify(tmp)}};
+      } else if (cmd.createAccount) {
+        rval = {createAccount: await this.createAccount(cmd.createAccount.contact, cmd.createAccount.sendCode, cmd.createAccount.label, cmd.createAccount.tags)};
+      } else if (cmd.generateWebAuthnRegistrationChallengeForLoggedInUser) {
+        if (!StringRatchet.trimToNull(loggedInUserId)) {
+          ErrorRatchet.throwFormattedErr('This requires a logged in user');
+        }
+        const tmp: PublicKeyCredentialCreationOptionsJSON = await this.generateRegistrationOptionsForLoggedInUser(loggedInUserId,origin);
+        rval = {generateWebAuthnRegistrationChallengeForLoggedInUser: {dataAsJson:JSON.stringify(tmp)}};
+      } else if (cmd.addWebAuthnRegistrationToLoggedInUser) {
+        if (!StringRatchet.trimToNull(loggedInUserId)) {
+          ErrorRatchet.throwFormattedErr('This requires a logged in user');
+        }
+        const data: RegistrationResponseJSON = JSON.parse(cmd.addWebAuthnRegistrationToLoggedInUser.dataAsJson);
+        const out: WardenStoreRegistrationResponse = await this.storeAuthnRegistration(loggedInUserId, origin, data);
+        rval = {addWebAuthnRegistrationToLoggedInUser: out.result===WardenStoreRegistrationResponseType.Verified };
+      } else if (cmd.removeWebAuthnRegistration) {
+        rval = {removeWebAuthnRegistration: !!(await this.removeSingleWebAuthnRegistration(cmd.removeWebAuthnRegistration.userId, cmd.removeWebAuthnRegistration.credentialId))};
+      }
+    } else {
+      rval = {error: 'No command sent'};
+    }
+    return rval;
   }
 
   // Returns the newly created account id
@@ -106,24 +153,25 @@ export class WardenService {
     return rval;
   }
 
-  public async generateWebAuthnRegistrationOptionsForContact(contact: WardenContactEntry, origin: string): Promise<any> {
+  public async generateWebAuthnRegistrationOptionsForContact(contact: WardenContactEntry, origin: string): Promise<PublicKeyCredentialCreationOptionsJSON> {
     // (Pseudocode) Retrieve the user from the database
     // after they've logged in
     let rval: any = null;
     if (contact?.type && StringRatchet.trimToNull(contact?.value) && StringRatchet.trimToNull(origin)) {
       const entry: WardenEntry = await this.storageProvider.findEntryByContact(contact);
-      rval = this.generateRegistrationOptions(entry, origin);
+      rval = this.generateRegistrationOptionsForLoggedInUser(entry.userId, origin);
     }
     return rval;
   }
 
-  public async generateRegistrationOptions(entry: WardenEntry, origin: string): Promise<PublicKeyCredentialCreationOptionsJSON> {
+  public async generateRegistrationOptionsForLoggedInUser(userId: string, origin: string): Promise<PublicKeyCredentialCreationOptionsJSON> {
     if (!origin || !this.options.allowedOrigins.includes(origin)) {
       throw new Error('Invalid origin : ' + origin);
     }
     const asUrl: URL = new URL(origin);
     const rpID: string = asUrl.hostname;
 
+    const entry: WardenEntry = await this.storageProvider.findEntryById(userId);
     const options = generateRegistrationOptions({
       rpName: this.options.relyingPartyName,
       rpID: rpID,
@@ -147,7 +195,7 @@ export class WardenService {
   }
 
   public async storeAuthnRegistration(
-    contact: WardenContactEntry,
+      userId: string,
     origin: string,
     data: RegistrationResponseJSON
   ): Promise<WardenStoreRegistrationResponse> {
@@ -160,7 +208,7 @@ export class WardenService {
       const asUrl: URL = new URL(origin);
       const rpID: string = asUrl.hostname;
 
-      const user: WardenEntry = await this.storageProvider.findEntryByContact(contact);
+      const user: WardenEntry = await this.storageProvider.findEntryById(userId);
       // (Pseudocode) Get `options.challenge` that was saved above
       const expectedChallenge: string = await this.storageProvider.fetchCurrentUserChallenge(user.userId, rpID);
 
@@ -309,8 +357,7 @@ export class WardenService {
     }
 
     if (request.webAuthn) {
-      const unwrapped: AuthenticationResponseJSON = JSON.parse(request.webAuthn.payloadJSON);
-      rval = await this.loginWithWebAuthnRequest(user, origin, unwrapped);
+      rval = await this.loginWithWebAuthnRequest(user, origin, request.webAuthn);
     } else if (StringRatchet.trimToNull(request.expiringToken)) {
       const lookup: boolean = await this.expiringCodeRatchet.checkCode(
         StringRatchet.trimToEmpty(request.expiringToken),
