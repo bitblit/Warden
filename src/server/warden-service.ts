@@ -17,20 +17,20 @@ import {
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
 } from '@simplewebauthn/typescript-types';
-import {WardenServiceOptions} from '../common/model/warden-service-options';
-import {WardenStorageProvider} from './provider/warden-storage-provider';
-import {WardenContactEntry} from '../common/model/warden-contact-entry';
-import {WardenEntry} from '../common/model/warden-entry';
-import {WardenStoreRegistrationResponse} from '../common/model/warden-store-registration-response';
-import {WardenWebAuthnEntry} from '../common/model/warden-web-authn-entry';
-import {WardenMessageSendingProvider} from './provider/warden-message-sending-provider';
-import {WardenLoginRequest} from '../common/model/warden-login-request';
-import {WardenStoreRegistrationResponseType} from '../common/model/warden-store-registration-response-type';
-import {WardenCustomerMessageType} from '../common/model/warden-customer-message-type';
-import {ExpiringCode, ExpiringCodeProvider, ExpiringCodeRatchet} from "@bitblit/ratchet/aws";
-import {Base64Ratchet, ErrorRatchet, Logger, RequireRatchet, StringRatchet} from "@bitblit/ratchet/common";
-import {WardenCommandResponse} from "../common/command/warden-command-response";
-import {WardenCommand} from "../common/command/warden-command";
+import { WardenServiceOptions } from '../common/model/warden-service-options';
+import { WardenStorageProvider } from './provider/warden-storage-provider';
+import { WardenContactEntry } from '../common/model/warden-contact-entry';
+import { WardenEntry } from '../common/model/warden-entry';
+import { WardenStoreRegistrationResponse } from '../common/model/warden-store-registration-response';
+import { WardenWebAuthnEntry } from '../common/model/warden-web-authn-entry';
+import { WardenMessageSendingProvider } from './provider/warden-message-sending-provider';
+import { WardenLoginRequest } from '../common/model/warden-login-request';
+import { WardenStoreRegistrationResponseType } from '../common/model/warden-store-registration-response-type';
+import { WardenCustomerMessageType } from '../common/model/warden-customer-message-type';
+import { ExpiringCode, ExpiringCodeProvider, ExpiringCodeRatchet } from '@bitblit/ratchet/aws';
+import { Base64Ratchet, ErrorRatchet, Logger, RequireRatchet, StringRatchet } from '@bitblit/ratchet/common';
+import { WardenCommandResponse } from '../common/command/warden-command-response';
+import { WardenCommand } from '../common/command/warden-command';
 
 /**
  * Systems fully using WardenService need to create these endpoints:
@@ -59,7 +59,7 @@ export class WardenService {
       rval = JSON.stringify(resp);
     } catch (err) {
       // Just cast it directly
-      rval = JSON.stringify({error: ErrorRatchet.safeStringifyErr(err)} as WardenCommandResponse);
+      rval = JSON.stringify({ error: ErrorRatchet.safeStringifyErr(err) } as WardenCommandResponse);
     }
     return rval;
   }
@@ -68,30 +68,45 @@ export class WardenService {
     let rval: WardenCommandResponse = null;
     if (cmd) {
       if (cmd.sendExpiringValidationToken) {
-        rval = {sendExpiringValidationToken: await this.sendExpiringValidationToken(cmd.sendExpiringValidationToken)};
+        rval = { sendExpiringValidationToken: await this.sendExpiringValidationToken(cmd.sendExpiringValidationToken) };
       } else if (cmd.generateWebAuthnAuthenticationChallenge) {
-        const tmp: PublicKeyCredentialRequestOptionsJSON = await this.generateAuthenticationOptionsForContact(cmd.generateWebAuthnAuthenticationChallenge, origin);
-        rval = {generateWebAuthnAuthenticationChallenge: {dataAsJson: JSON.stringify(tmp)}};
+        const tmp: PublicKeyCredentialRequestOptionsJSON = await this.generateAuthenticationOptionsForContact(
+          cmd.generateWebAuthnAuthenticationChallenge,
+          origin
+        );
+        rval = { generateWebAuthnAuthenticationChallenge: { dataAsJson: JSON.stringify(tmp) } };
       } else if (cmd.createAccount) {
-        rval = {createAccount: await this.createAccount(cmd.createAccount.contact, cmd.createAccount.sendCode, cmd.createAccount.label, cmd.createAccount.tags)};
+        rval = {
+          createAccount: await this.createAccount(
+            cmd.createAccount.contact,
+            cmd.createAccount.sendCode,
+            cmd.createAccount.label,
+            cmd.createAccount.tags
+          ),
+        };
       } else if (cmd.generateWebAuthnRegistrationChallengeForLoggedInUser) {
         if (!StringRatchet.trimToNull(loggedInUserId)) {
           ErrorRatchet.throwFormattedErr('This requires a logged in user');
         }
-        const tmp: PublicKeyCredentialCreationOptionsJSON = await this.generateRegistrationOptionsForLoggedInUser(loggedInUserId,origin);
-        rval = {generateWebAuthnRegistrationChallengeForLoggedInUser: {dataAsJson:JSON.stringify(tmp)}};
+        const tmp: PublicKeyCredentialCreationOptionsJSON = await this.generateRegistrationOptionsForLoggedInUser(loggedInUserId, origin);
+        rval = { generateWebAuthnRegistrationChallengeForLoggedInUser: { dataAsJson: JSON.stringify(tmp) } };
       } else if (cmd.addWebAuthnRegistrationToLoggedInUser) {
         if (!StringRatchet.trimToNull(loggedInUserId)) {
           ErrorRatchet.throwFormattedErr('This requires a logged in user');
         }
         const data: RegistrationResponseJSON = JSON.parse(cmd.addWebAuthnRegistrationToLoggedInUser.dataAsJson);
         const out: WardenStoreRegistrationResponse = await this.storeAuthnRegistration(loggedInUserId, origin, data);
-        rval = {addWebAuthnRegistrationToLoggedInUser: out.result===WardenStoreRegistrationResponseType.Verified };
+        rval = { addWebAuthnRegistrationToLoggedInUser: out.result === WardenStoreRegistrationResponseType.Verified };
       } else if (cmd.removeWebAuthnRegistration) {
-        rval = {removeWebAuthnRegistration: !!(await this.removeSingleWebAuthnRegistration(cmd.removeWebAuthnRegistration.userId, cmd.removeWebAuthnRegistration.credentialId))};
+        rval = {
+          removeWebAuthnRegistration: !!(await this.removeSingleWebAuthnRegistration(
+            cmd.removeWebAuthnRegistration.userId,
+            cmd.removeWebAuthnRegistration.credentialId
+          )),
+        };
       }
     } else {
-      rval = {error: 'No command sent'};
+      rval = { error: 'No command sent' };
     }
     return rval;
   }
@@ -153,7 +168,10 @@ export class WardenService {
     return rval;
   }
 
-  public async generateWebAuthnRegistrationOptionsForContact(contact: WardenContactEntry, origin: string): Promise<PublicKeyCredentialCreationOptionsJSON> {
+  public async generateWebAuthnRegistrationOptionsForContact(
+    contact: WardenContactEntry,
+    origin: string
+  ): Promise<PublicKeyCredentialCreationOptionsJSON> {
     // (Pseudocode) Retrieve the user from the database
     // after they've logged in
     let rval: any = null;
@@ -195,7 +213,7 @@ export class WardenService {
   }
 
   public async storeAuthnRegistration(
-      userId: string,
+    userId: string,
     origin: string,
     data: RegistrationResponseJSON
   ): Promise<WardenStoreRegistrationResponse> {

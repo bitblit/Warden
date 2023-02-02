@@ -4,5 +4,5 @@
  */
 
 export interface WardenCommandSender {
-  sendCommand(cmdString: string): Promise<string>
+  sendCommand(cmdString: string): Promise<string>;
 }

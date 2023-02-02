@@ -1,5 +1,5 @@
 import { WardenContactEntry } from './warden-contact-entry';
-import {AuthenticationResponseJSON} from "@simplewebauthn/typescript-types";
+import { AuthenticationResponseJSON } from '@simplewebauthn/typescript-types';
 
 export interface WardenLoginRequest {
   contact: WardenContactEntry;

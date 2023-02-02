@@ -1,5 +1,5 @@
-import {WebAuthnObjectWrapper} from "./web-authn-object-wrapper";
-import {WardenLoginResults} from "../model/warden-login-results";
+import { WebAuthnObjectWrapper } from './web-authn-object-wrapper';
+import { WardenLoginResults } from '../model/warden-login-results';
 
 export interface WardenCommandResponse {
   createAccount?: string;

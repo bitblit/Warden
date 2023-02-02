@@ -1,8 +1,8 @@
-import {CreateAccount} from "./create-account";
-import {WardenContactEntry} from "../model/warden-contact-entry";
-import {WebAuthnObjectWrapper} from "./web-authn-object-wrapper";
-import {RemoveWebAuthnRegistration} from "./remove-web-authn-registration";
-import {WardenLoginRequest} from "../model/warden-login-request";
+import { CreateAccount } from './create-account';
+import { WardenContactEntry } from '../model/warden-contact-entry';
+import { WebAuthnObjectWrapper } from './web-authn-object-wrapper';
+import { RemoveWebAuthnRegistration } from './remove-web-authn-registration';
+import { WardenLoginRequest } from '../model/warden-login-request';
 
 export interface WardenCommand {
   createAccount?: CreateAccount;

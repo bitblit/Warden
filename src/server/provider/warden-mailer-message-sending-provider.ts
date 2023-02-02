@@ -5,8 +5,8 @@ import { WardenContactEntry } from '../../common/model/warden-contact-entry';
 import { WardenMailerMessageSendingProviderOptions } from './warden-mailer-message-sending-provider-options';
 import { SendRawEmailResponse } from 'aws-sdk/clients/ses';
 import { WardenCustomerMessageType } from '../../common/model/warden-customer-message-type';
-import {Mailer, ReadyToSendEmail} from "@bitblit/ratchet/aws";
-import {Logger} from "@bitblit/ratchet/common";
+import { Mailer, ReadyToSendEmail } from '@bitblit/ratchet/aws';
+import { Logger } from '@bitblit/ratchet/common';
 
 export class WardenMailerMessageSendingProvider implements WardenMessageSendingProvider<ReadyToSendEmail> {
   private static defaultOptions(): WardenMailerMessageSendingProviderOptions {
@@ -18,7 +18,10 @@ export class WardenMailerMessageSendingProvider implements WardenMessageSendingP
     return rval;
   }
 
-  constructor(private mailer: Mailer, private options: WardenMailerMessageSendingProviderOptions = WardenMailerMessageSendingProvider.defaultOptions()) {}
+  constructor(
+    private mailer: Mailer,
+    private options: WardenMailerMessageSendingProviderOptions = WardenMailerMessageSendingProvider.defaultOptions()
+  ) {}
 
   public async formatMessage(
     contact: WardenContactEntry,

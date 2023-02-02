@@ -1,24 +1,21 @@
 //    Service for interacting with positions for a given user
-import {WardenCommand} from "../common/command/warden-command";
-import {WardenContactEntry} from "../common/model/warden-contact-entry";
-import {WardenCommandSender} from "./warden-command-sender";
-import {WardenCommandResponse} from "../common/command/warden-command-response";
-import {ErrorRatchet, Logger, StringRatchet} from "@bitblit/ratchet/common";
+import { WardenCommand } from '../common/command/warden-command';
+import { WardenContactEntry } from '../common/model/warden-contact-entry';
+import { WardenCommandSender } from './warden-command-sender';
+import { WardenCommandResponse } from '../common/command/warden-command-response';
+import { ErrorRatchet, Logger, StringRatchet } from '@bitblit/ratchet/common';
 import {
   AuthenticationResponseJSON,
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
-  RegistrationResponseJSON
-} from "@simplewebauthn/typescript-types";
-import {startAuthentication, startRegistration} from "@simplewebauthn/browser";
-import {WardenLoginResults} from "../common/model/warden-login-results";
-import {WardenLoginRequest} from "../common";
-
+  RegistrationResponseJSON,
+} from '@simplewebauthn/typescript-types';
+import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
+import { WardenLoginResults } from '../common/model/warden-login-results';
+import { WardenLoginRequest } from '../common/model/warden-login-request';
 
 export class WardenClient {
-
-  constructor(private commandSender: WardenCommandSender) {
-  }
+  constructor(private commandSender: WardenCommandSender) {}
 
   public async exchangeCommand(cmd: WardenCommand, returnErrors?: boolean): Promise<WardenCommandResponse> {
     const asString: string = JSON.stringify(cmd);
@@ -37,17 +34,16 @@ export class WardenClient {
         contact: contact,
         sendCode: sendCode,
         label: label,
-        tags: tags
-      }
+        tags: tags,
+      },
     };
     const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
     return rval.createAccount;
   }
 
-
   public async generateWebAuthnAuthenticationChallenge(contact: WardenContactEntry): Promise<PublicKeyCredentialRequestOptionsJSON> {
     const cmd: WardenCommand = {
-      generateWebAuthnAuthenticationChallenge: contact
+      generateWebAuthnAuthenticationChallenge: contact,
     };
     const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
     const parsed: PublicKeyCredentialRequestOptionsJSON = JSON.parse(rval.generateWebAuthnAuthenticationChallenge.dataAsJson);
@@ -56,7 +52,7 @@ export class WardenClient {
 
   public async generateWebAuthnRegistrationChallengeForLoggedInUser(): Promise<PublicKeyCredentialCreationOptionsJSON> {
     const cmd: WardenCommand = {
-      generateWebAuthnRegistrationChallengeForLoggedInUser: true
+      generateWebAuthnRegistrationChallengeForLoggedInUser: true,
     };
     const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
     const parsed: PublicKeyCredentialCreationOptionsJSON = JSON.parse(rval.generateWebAuthnAuthenticationChallenge.dataAsJson);
@@ -67,8 +63,8 @@ export class WardenClient {
     const cmd: WardenCommand = {
       removeWebAuthnRegistration: {
         userId: userId,
-        credentialId: credId
-      }
+        credentialId: credId,
+      },
     };
     const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
     return rval.removeWebAuthnRegistration;
@@ -76,7 +72,7 @@ export class WardenClient {
 
   public async sendExpiringValidationToken(contact: WardenContactEntry): Promise<boolean> {
     const cmd: WardenCommand = {
-      sendExpiringValidationToken: contact
+      sendExpiringValidationToken: contact,
     };
     const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
     return rval.sendExpiringValidationToken;
@@ -85,8 +81,8 @@ export class WardenClient {
   public async addWebAuthnRegistrationToLoggedInUser(data: RegistrationResponseJSON): Promise<boolean> {
     const cmd: WardenCommand = {
       addWebAuthnRegistrationToLoggedInUser: {
-        dataAsJson: JSON.stringify(data)
-      }
+        dataAsJson: JSON.stringify(data),
+      },
     };
     const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
     return rval.addWebAuthnRegistrationToLoggedInUser;
@@ -101,9 +97,9 @@ export class WardenClient {
 
   public async performLoginCmd(login: WardenLoginRequest): Promise<WardenLoginResults> {
     const loginCmd: WardenCommand = {
-      performLogin: login
+      performLogin: login,
     };
-    const cmdResponse:WardenCommandResponse = await this.exchangeCommand(loginCmd);
+    const cmdResponse: WardenCommandResponse = await this.exchangeCommand(loginCmd);
     return cmdResponse.performLogin;
   }
 
@@ -118,8 +114,8 @@ export class WardenClient {
       Logger.info('Got creds: %j', creds);
 
       const loginCmd: WardenLoginRequest = {
-          contact: contact,
-          webAuthn: creds
+        contact: contact,
+        webAuthn: creds,
       };
       rval = await this.performLoginCmd(loginCmd);
       if (rval?.jwtToken) {
@@ -127,25 +123,23 @@ export class WardenClient {
         //rval = true;
       }
     } catch (err) {
-      Logger.error('WebauthN Failed : %s' , err);
+      Logger.error('WebauthN Failed : %s', err);
     }
     return rval;
   }
-
 
   public async refreshJwtToken(oldJwtToken: string): Promise<string> {
     let rval: string = null;
     if (StringRatchet.trimToNull(oldJwtToken)) {
       try {
-        const resp: WardenCommandResponse = await this.exchangeCommand({refreshJwtToken: oldJwtToken});
+        const resp: WardenCommandResponse = await this.exchangeCommand({ refreshJwtToken: oldJwtToken });
         rval = resp.refreshJwtToken;
       } catch (err) {
-        Logger.error('JwtRefresh Failed : %s' , err);
+        Logger.error('JwtRefresh Failed : %s', err);
       }
     }
     return rval;
   }
-
 
   public async executeExpiringTokenBasedLogin(contact: WardenContactEntry, expiringToken: string): Promise<WardenLoginResults> {
     let rval: WardenLoginResults = null;
@@ -155,19 +149,16 @@ export class WardenClient {
 
       const loginCmd: WardenLoginRequest = {
         contact: contact,
-        expiringToken: expiringToken
+        expiringToken: expiringToken,
       };
       rval = await this.performLoginCmd(loginCmd);
       if (rval?.jwtToken) {
         //TODO: this.localStorageService.setJwtToken(req.jwtToken);
         //rval = true;
       }
-
     } catch (err) {
-      Logger.error('ExpiringToken login Failed : %s' , err);
+      Logger.error('ExpiringToken login Failed : %s', err);
     }
     return rval;
   }
-
-
 }
