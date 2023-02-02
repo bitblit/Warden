@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "*"
+    tags-ignore:
+      - "alpha-*"
+      - "release-*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - uses: ./.github/workflows/actions/build-env-setup
+
+      - name: Build
+        run: yarn build
+        shell: bash
+
+      - name: Test
+        run: yarn test
+        shell: bash
+
+      - name: Uploading artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ratchet-build-artifacts-$GITHUB_RUN_NUMBER
+          path: artifacts
+          retention-days: 30
