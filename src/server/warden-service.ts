@@ -59,7 +59,7 @@ export class WardenService {
       rval = JSON.stringify(resp);
     } catch (err) {
       // Just cast it directly
-      rval = JSON.stringify({error: err} as WardenCommandResponse);
+      rval = JSON.stringify({error: ErrorRatchet.safeStringifyErr(err)} as WardenCommandResponse);
     }
     return rval;
   }
