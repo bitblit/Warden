@@ -1,7 +1,7 @@
 //    Service for interacting with positions for a given user
 import { WardenMessageSendingProvider } from './warden-message-sending-provider';
 import { WardenContactType } from '../../common/model/warden-contact-type';
-import { WardenContactEntry } from '../../common/model/warden-contact-entry';
+import { WardenContact } from '../../common/model/warden-contact';
 import { WardenMailerMessageSendingProviderOptions } from './warden-mailer-message-sending-provider-options';
 import { SendRawEmailResponse } from 'aws-sdk/clients/ses';
 import { WardenCustomerMessageType } from '../../common/model/warden-customer-message-type';
@@ -24,7 +24,7 @@ export class WardenMailerMessageSendingProvider implements WardenMessageSendingP
   ) {}
 
   public async formatMessage(
-    contact: WardenContactEntry,
+    contact: WardenContact,
     messageType: WardenCustomerMessageType,
     context: Record<string, any>
   ): Promise<ReadyToSendEmail> {
@@ -48,7 +48,7 @@ export class WardenMailerMessageSendingProvider implements WardenMessageSendingP
     return type === WardenContactType.EmailAddress;
   }
 
-  public async sendMessage(contact: WardenContactEntry, message: ReadyToSendEmail): Promise<boolean> {
+  public async sendMessage(contact: WardenContact, message: ReadyToSendEmail): Promise<boolean> {
     const rval: SendRawEmailResponse = await this.mailer.sendEmail(message);
     Logger.debug('SendRawEmailResponse was : %j', rval);
     return !!rval;

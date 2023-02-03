@@ -1,6 +1,6 @@
 //    Service for interacting with positions for a given user
 import { WardenCommand } from '../common/command/warden-command';
-import { WardenContactEntry } from '../common/model/warden-contact-entry';
+import { WardenContact } from '../common/model/warden-contact';
 import { WardenCommandSender } from './warden-command-sender';
 import { WardenCommandResponse } from '../common/command/warden-command-response';
 import { ErrorRatchet, Logger, StringRatchet } from '@bitblit/ratchet/common';
@@ -28,7 +28,7 @@ export class WardenClient {
     return parsed;
   }
 
-  public async createAccount(contact: WardenContactEntry, sendCode?: boolean, label?: string, tags?: string[]): Promise<string> {
+  public async createAccount(contact: WardenContact, sendCode?: boolean, label?: string, tags?: string[]): Promise<string> {
     const cmd: WardenCommand = {
       createAccount: {
         contact: contact,
@@ -41,7 +41,7 @@ export class WardenClient {
     return rval.createAccount;
   }
 
-  public async generateWebAuthnAuthenticationChallenge(contact: WardenContactEntry): Promise<PublicKeyCredentialRequestOptionsJSON> {
+  public async generateWebAuthnAuthenticationChallenge(contact: WardenContact): Promise<PublicKeyCredentialRequestOptionsJSON> {
     const cmd: WardenCommand = {
       generateWebAuthnAuthenticationChallenge: contact,
     };
@@ -70,7 +70,7 @@ export class WardenClient {
     return rval.removeWebAuthnRegistration;
   }
 
-  public async sendExpiringValidationToken(contact: WardenContactEntry): Promise<boolean> {
+  public async sendExpiringValidationToken(contact: WardenContact): Promise<boolean> {
     const cmd: WardenCommand = {
       sendExpiringValidationToken: contact,
     };
@@ -103,7 +103,7 @@ export class WardenClient {
     return cmdResponse.performLogin;
   }
 
-  public async executeWebAuthNLogin(contact: WardenContactEntry): Promise<WardenLoginResults> {
+  public async executeWebAuthNLogin(contact: WardenContact): Promise<WardenLoginResults> {
     let rval: WardenLoginResults = null;
     try {
       // Add it to the list
@@ -141,7 +141,7 @@ export class WardenClient {
     return rval;
   }
 
-  public async executeExpiringTokenBasedLogin(contact: WardenContactEntry, expiringToken: string): Promise<WardenLoginResults> {
+  public async executeExpiringTokenBasedLogin(contact: WardenContact, expiringToken: string): Promise<WardenLoginResults> {
     let rval: WardenLoginResults = null;
     try {
       // Add it to the list

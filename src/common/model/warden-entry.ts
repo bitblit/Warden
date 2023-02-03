@@ -1,10 +1,10 @@
 import { WardenWebAuthnEntry } from './warden-web-authn-entry';
-import { WardenContactEntry } from './warden-contact-entry';
+import { WardenContact } from './warden-contact';
 
 export interface WardenEntry {
   userId: string;
   userLabel: string; // Usually full name, could be something else
-  contactMethods: WardenContactEntry[];
+  contactMethods: WardenContact[];
   tags: string[];
   webAuthnAuthenticators: WardenWebAuthnEntry[];
   createdEpochMS: number;

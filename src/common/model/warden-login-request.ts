@@ -1,8 +1,8 @@
-import { WardenContactEntry } from './warden-contact-entry';
+import { WardenContact } from './warden-contact';
 import { AuthenticationResponseJSON } from '@simplewebauthn/typescript-types';
 
 export interface WardenLoginRequest {
-  contact: WardenContactEntry;
+  contact: WardenContact;
   webAuthn?: AuthenticationResponseJSON;
   expiringToken?: string;
   jwtTokenToRefresh?: string;

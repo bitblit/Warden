@@ -1,5 +1,5 @@
 //    Service for interacting with positions for a given user
-import { WardenContactEntry } from '../../common/model/warden-contact-entry';
+import { WardenContact } from '../../common/model/warden-contact';
 import { WardenStorageProvider } from './warden-storage-provider';
 import { WardenS3SingleFileStorageProviderOptions } from './warden-s3-single-file-storage-provider-options';
 import { WardenEntry } from '../../common/model/warden-entry';
@@ -44,7 +44,7 @@ export class WardenS3SingleFileStorageProvider implements WardenStorageProvider 
     return entry ? entry.challenge : null;
   }
 
-  public async findEntryByContact(contact: WardenContactEntry): Promise<WardenEntry> {
+  public async findEntryByContact(contact: WardenContact): Promise<WardenEntry> {
     let rval: WardenEntry = null;
     if (contact?.type && StringRatchet.trimToNull(contact?.value)) {
       const data: WardenS3SingleFileStorageProviderDataFile = await this.fetchDataFile();

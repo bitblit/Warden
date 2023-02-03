@@ -1,4 +1,4 @@
-import { WardenContactEntry } from '../../common/model/warden-contact-entry';
+import { WardenContact } from '../../common/model/warden-contact';
 import { WardenContactType } from '../../common/model/warden-contact-type';
 import { WardenCustomerMessageType } from '../../common/model/warden-customer-message-type';
 
@@ -9,6 +9,6 @@ import { WardenCustomerMessageType } from '../../common/model/warden-customer-me
 
 export interface WardenMessageSendingProvider<T> {
   handlesContactType(type: WardenContactType): boolean;
-  sendMessage(contact: WardenContactEntry, message: T): Promise<boolean>;
-  formatMessage(contact: WardenContactEntry, messageType: WardenCustomerMessageType, context: Record<string, any>): Promise<T>;
+  sendMessage(contact: WardenContact, message: T): Promise<boolean>;
+  formatMessage(contact: WardenContact, messageType: WardenCustomerMessageType, context: Record<string, any>): Promise<T>;
 }

@@ -1,5 +1,5 @@
 import { WardenEntry } from '../../common/model/warden-entry';
-import { WardenContactEntry } from '../../common/model/warden-contact-entry';
+import { WardenContact } from '../../common/model/warden-contact';
 
 /**
  * Classes implementing WardenStorageProvider perform store and
@@ -8,7 +8,7 @@ import { WardenContactEntry } from '../../common/model/warden-contact-entry';
 
 export interface WardenStorageProvider {
   findEntryById(userId: string): Promise<WardenEntry>;
-  findEntryByContact(contact: WardenContactEntry): Promise<WardenEntry>;
+  findEntryByContact(contact: WardenContact): Promise<WardenEntry>;
   saveEntry(entry: WardenEntry): Promise<WardenEntry>;
   removeEntry(userId: string): Promise<boolean>;
 

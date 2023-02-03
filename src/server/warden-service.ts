@@ -19,7 +19,7 @@ import {
 } from '@simplewebauthn/typescript-types';
 import { WardenServiceOptions } from '../common/model/warden-service-options';
 import { WardenStorageProvider } from './provider/warden-storage-provider';
-import { WardenContactEntry } from '../common/model/warden-contact-entry';
+import { WardenContact } from '../common/model/warden-contact';
 import { WardenEntry } from '../common/model/warden-entry';
 import { WardenStoreRegistrationResponse } from '../common/model/warden-store-registration-response';
 import { WardenWebAuthnEntry } from '../common/model/warden-web-authn-entry';
@@ -31,6 +31,7 @@ import { ExpiringCode, ExpiringCodeProvider, ExpiringCodeRatchet } from '@bitbli
 import { Base64Ratchet, ErrorRatchet, Logger, RequireRatchet, StringRatchet } from '@bitblit/ratchet/common';
 import { WardenCommandResponse } from '../common/command/warden-command-response';
 import { WardenCommand } from '../common/command/warden-command';
+import { WardenValidator } from '../common/util/warden-validator';
 
 /**
  * Systems fully using WardenService need to create these endpoints:
@@ -112,9 +113,9 @@ export class WardenService {
   }
 
   // Returns the newly created account id
-  public async createAccount(contact: WardenContactEntry, sendCode?: boolean, label?: string, tags?: string[]): Promise<string> {
+  public async createAccount(contact: WardenContact, sendCode?: boolean, label?: string, tags?: string[]): Promise<string> {
     let rval: string = null;
-    if (StringRatchet.trimToNull(contact?.value) && contact?.type) {
+    if (WardenValidator.validContact(contact)) {
       const old: WardenEntry = await this.storageProvider.findEntryByContact(contact);
       if (!!old) {
         ErrorRatchet.throwFormattedErr('Cannot create - account already exists for %j', contact);
@@ -143,14 +144,14 @@ export class WardenService {
         await this.sendExpiringValidationToken(contact);
       }
     } else {
-      ErrorRatchet.throwFormattedErr('Cannot create - invalid request');
+      ErrorRatchet.throwFormattedErr('Cannot create - invalid contact (missing or invalid fields)');
     }
     return rval;
   }
 
-  public async addContactMethodToUser(userId: string, contact: WardenContactEntry): Promise<boolean> {
+  public async addContactMethodToUser(userId: string, contact: WardenContact): Promise<boolean> {
     let rval: boolean = false;
-    if (StringRatchet.trimToNull(userId) && StringRatchet.trimToNull(contact?.value) && contact?.type) {
+    if (StringRatchet.trimToNull(userId) && WardenValidator.validContact(contact)) {
       const otherUser: WardenEntry = await this.storageProvider.findEntryByContact(contact);
       if (otherUser && otherUser.userId !== userId) {
         ErrorRatchet.throwFormattedErr('Cannot add contact to this user, another user already has that contact');
@@ -169,15 +170,17 @@ export class WardenService {
   }
 
   public async generateWebAuthnRegistrationOptionsForContact(
-    contact: WardenContactEntry,
+    contact: WardenContact,
     origin: string
   ): Promise<PublicKeyCredentialCreationOptionsJSON> {
     // (Pseudocode) Retrieve the user from the database
     // after they've logged in
     let rval: any = null;
-    if (contact?.type && StringRatchet.trimToNull(contact?.value) && StringRatchet.trimToNull(origin)) {
+    if (WardenValidator.validContact(contact) && StringRatchet.trimToNull(origin)) {
       const entry: WardenEntry = await this.storageProvider.findEntryByContact(contact);
       rval = this.generateRegistrationOptionsForLoggedInUser(entry.userId, origin);
+    } else {
+      ErrorRatchet.throwFormattedErr('Cannot generate options - invalid contact');
     }
     return rval;
   }
@@ -279,7 +282,7 @@ export class WardenService {
   }
 
   public async generateAuthenticationOptionsForContact(
-    contact: WardenContactEntry,
+    contact: WardenContact,
     origin: string
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
     // (Pseudocode) Retrieve the user from the database
@@ -321,7 +324,7 @@ export class WardenService {
     return options;
   }
 
-  public senderForContact(contact: WardenContactEntry): WardenMessageSendingProvider<any> {
+  public senderForContact(contact: WardenContact): WardenMessageSendingProvider<any> {
     let rval: WardenMessageSendingProvider<any> = null;
     if (contact?.type) {
       rval = (this.messageSendingProviders || []).find((p) => p.handlesContactType(contact.type));
@@ -329,7 +332,7 @@ export class WardenService {
     return rval;
   }
 
-  public async sendExpiringValidationToken(request: WardenContactEntry): Promise<boolean> {
+  public async sendExpiringValidationToken(request: WardenContact): Promise<boolean> {
     let rval: boolean = false;
     if (request?.type && StringRatchet.trimToNull(request?.value)) {
       const prov: WardenMessageSendingProvider<any> = this.senderForContact(request);
@@ -358,8 +361,7 @@ export class WardenService {
   public async processLogin(request: WardenLoginRequest, origin: string): Promise<boolean> {
     let rval: boolean = false;
     RequireRatchet.notNullOrUndefined(request, 'request');
-    RequireRatchet.notNullOrUndefined(request?.contact?.value, 'request.contact.value');
-    RequireRatchet.notNullOrUndefined(request?.contact?.type, 'request.contact.type');
+    RequireRatchet.true(WardenValidator.validContact(request?.contact), 'Invalid contact');
     RequireRatchet.true(
       !!request?.webAuthn || !!StringRatchet.trimToNull(request?.expiringToken),
       'You must provide one of webAuthn or expiringToken'

@@ -1,7 +1,7 @@
-import { WardenContactEntry } from '../model/warden-contact-entry';
+import { WardenContact } from '../model/warden-contact';
 
 export interface CreateAccount {
-  contact: WardenContactEntry;
+  contact: WardenContact;
   sendCode?: boolean;
   label?: string;
   tags?: string[];

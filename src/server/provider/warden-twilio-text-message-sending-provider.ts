@@ -1,7 +1,7 @@
 //    Service for interacting with positions for a given user
 import { WardenMessageSendingProvider } from './warden-message-sending-provider';
 import { WardenContactType } from '../../common/model/warden-contact-type';
-import { WardenContactEntry } from '../../common/model/warden-contact-entry';
+import { WardenContact } from '../../common/model/warden-contact';
 import { WardenTwilioTextMessageSendingProviderOptions } from './warden-twilio-text-message-sending-provider-options';
 import { WardenCustomerMessageType } from '../../common/model/warden-customer-message-type';
 import { Logger, TwilioRatchet } from '@bitblit/ratchet/common';
@@ -10,7 +10,7 @@ export class WardenTwilioTextMessageSendingProvider implements WardenMessageSend
   constructor(private optsPromise: Promise<WardenTwilioTextMessageSendingProviderOptions>) {}
 
   public async formatMessage(
-    contact: WardenContactEntry,
+    contact: WardenContact,
     messageType: WardenCustomerMessageType,
     context: Record<string, any>
   ): Promise<string> {
@@ -28,10 +28,10 @@ export class WardenTwilioTextMessageSendingProvider implements WardenMessageSend
   }
 
   handlesContactType(type: WardenContactType): boolean {
-    return type === WardenContactType.EmailAddress;
+    return type === WardenContactType.TextCapablePhoneNumber;
   }
 
-  public async sendMessage(contact: WardenContactEntry, message: string): Promise<boolean> {
+  public async sendMessage(contact: WardenContact, message: string): Promise<boolean> {
     const opts: WardenTwilioTextMessageSendingProviderOptions = await this.optsPromise;
     const rval: any[] = await TwilioRatchet.sendMessageDirect(
       opts.accountSID,
