@@ -1,4 +1,3 @@
-//    Service for interacting with positions for a given user
 import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
@@ -28,17 +27,22 @@ import { WardenLoginRequest } from '../common/model/warden-login-request';
 import { WardenStoreRegistrationResponseType } from '../common/model/warden-store-registration-response-type';
 import { WardenCustomerMessageType } from '../common/model/warden-customer-message-type';
 import { ExpiringCode, ExpiringCodeProvider, ExpiringCodeRatchet } from '@bitblit/ratchet/aws';
-import { Base64Ratchet, ErrorRatchet, Logger, RequireRatchet, StringRatchet } from '@bitblit/ratchet/common';
+import {
+  Base64Ratchet,
+  ErrorRatchet,
+  ExpiredJwtHandling,
+  JwtRatchetLike,
+  Logger,
+  RequireRatchet,
+  StringRatchet,
+} from '@bitblit/ratchet/common';
 import { WardenCommandResponse } from '../common/command/warden-command-response';
 import { WardenCommand } from '../common/command/warden-command';
-import { WardenValidator } from '../common/util/warden-validator';
-
-/**
- * Systems fully using WardenService need to create these endpoints:
- * - Create user (submit a contact)
- * -
- *
- */
+import { WardenUtils } from '../common/util/warden-utils';
+import { WardenUserTokenDataProvider } from './provider/warden-user-token-data-provider';
+import { WardenDefaultUserTokenDataProvider } from './provider/warden-default-user-token-data-provider';
+import { WardenJwtToken } from '../common/model/warden-jwt-token';
+import { WardenLoginResults } from '../common';
 
 export class WardenService {
   private expiringCodeRatchet: ExpiringCodeRatchet;
@@ -47,11 +51,14 @@ export class WardenService {
     private options: WardenServiceOptions,
     private storageProvider: WardenStorageProvider,
     private messageSendingProviders: WardenMessageSendingProvider<any>[],
-    private expiringCodeProvider: ExpiringCodeProvider
+    private expiringCodeProvider: ExpiringCodeProvider,
+    private jwtRatchetLike: JwtRatchetLike,
+    private userTokenDataProvider: WardenUserTokenDataProvider<any> = new WardenDefaultUserTokenDataProvider()
   ) {
     this.expiringCodeRatchet = new ExpiringCodeRatchet(this.expiringCodeProvider);
   }
 
+  // A helper function for bridging across GraphQL as an embedded JSON command
   public async processCommandStringToString(cmdString: string, origin: string, loggedInUserId: string): Promise<string> {
     let rval: string = null;
     try {
@@ -65,13 +72,14 @@ export class WardenService {
     return rval;
   }
 
+  // A helper function for bridging across GraphQL as an embedded JSON command
   public async processCommandToResponse(cmd: WardenCommand, origin: string, loggedInUserId: string): Promise<WardenCommandResponse> {
     let rval: WardenCommandResponse = null;
     if (cmd) {
       if (cmd.sendExpiringValidationToken) {
         rval = { sendExpiringValidationToken: await this.sendExpiringValidationToken(cmd.sendExpiringValidationToken) };
       } else if (cmd.generateWebAuthnAuthenticationChallenge) {
-        const tmp: PublicKeyCredentialRequestOptionsJSON = await this.generateAuthenticationOptionsForContact(
+        const tmp: PublicKeyCredentialRequestOptionsJSON = await this.generateWebAuthnAuthenticationChallengeForContact(
           cmd.generateWebAuthnAuthenticationChallenge,
           origin
         );
@@ -89,7 +97,10 @@ export class WardenService {
         if (!StringRatchet.trimToNull(loggedInUserId)) {
           ErrorRatchet.throwFormattedErr('This requires a logged in user');
         }
-        const tmp: PublicKeyCredentialCreationOptionsJSON = await this.generateRegistrationOptionsForLoggedInUser(loggedInUserId, origin);
+        const tmp: PublicKeyCredentialCreationOptionsJSON = await this.generateWebAuthnRegistrationChallengeForLoggedInUser(
+          loggedInUserId,
+          origin
+        );
         rval = { generateWebAuthnRegistrationChallengeForLoggedInUser: { dataAsJson: JSON.stringify(tmp) } };
       } else if (cmd.addWebAuthnRegistrationToLoggedInUser) {
         if (!StringRatchet.trimToNull(loggedInUserId)) {
@@ -106,16 +117,42 @@ export class WardenService {
           )),
         };
       }
+    } else if (cmd.performLogin) {
+      const loginData: WardenLoginRequest = cmd.performLogin;
+      const loginOk: boolean = await this.processLogin(loginData, origin);
+      if (loginOk) {
+        const user: WardenEntry = await this.storageProvider.findEntryByContact(loginData.contact);
+        const expirationSeconds: number = await this.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
+        const userData: any = await this.userTokenDataProvider.fetchUserTokenData(user);
+        const roles: string[] = await this.userTokenDataProvider.fetchUserRoles(user);
+        const wardenToken: WardenJwtToken<any> = { userId: user.userId, user: userData, roles: roles, proxy: null };
+        const jwtToken: string = await this.jwtRatchetLike.createTokenString(wardenToken, expirationSeconds);
+        const output: WardenLoginResults = {
+          request: loginData,
+          jwtToken: jwtToken,
+        };
+        rval = { performLogin: output };
+      } else {
+        rval = { error: 'Login failed' };
+      }
+    } else if (cmd.refreshJwtToken) {
+      const parsed: WardenJwtToken<any> = await this.jwtRatchetLike.decodeToken(cmd.refreshJwtToken, ExpiredJwtHandling.THROW_EXCEPTION);
+      const user: WardenEntry = await this.storageProvider.findEntryById(parsed.userId);
+      const expirationSeconds: number = await this.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
+      const newToken: string = await this.jwtRatchetLike.refreshJWTString(cmd.refreshJwtToken, false, expirationSeconds);
+      rval = {
+        refreshJwtToken: newToken,
+      };
     } else {
       rval = { error: 'No command sent' };
     }
     return rval;
   }
 
-  // Returns the newly created account id
+  // Creates a new account, returns the userId for that account upon success
   public async createAccount(contact: WardenContact, sendCode?: boolean, label?: string, tags?: string[]): Promise<string> {
     let rval: string = null;
-    if (WardenValidator.validContact(contact)) {
+    if (WardenUtils.validContact(contact)) {
       const old: WardenEntry = await this.storageProvider.findEntryByContact(contact);
       if (!!old) {
         ErrorRatchet.throwFormattedErr('Cannot create - account already exists for %j', contact);
@@ -149,9 +186,12 @@ export class WardenService {
     return rval;
   }
 
+  // For an existing user, add another contact method
+  // A given contact (eg, email address, phone number) can only associated with a single
+  // userId at a time
   public async addContactMethodToUser(userId: string, contact: WardenContact): Promise<boolean> {
     let rval: boolean = false;
-    if (StringRatchet.trimToNull(userId) && WardenValidator.validContact(contact)) {
+    if (StringRatchet.trimToNull(userId) && WardenUtils.validContact(contact)) {
       const otherUser: WardenEntry = await this.storageProvider.findEntryByContact(contact);
       if (otherUser && otherUser.userId !== userId) {
         ErrorRatchet.throwFormattedErr('Cannot add contact to this user, another user already has that contact');
@@ -169,6 +209,7 @@ export class WardenService {
     return rval;
   }
 
+  /* CAW : I dont think anything uses this
   public async generateWebAuthnRegistrationOptionsForContact(
     contact: WardenContact,
     origin: string
@@ -176,16 +217,23 @@ export class WardenService {
     // (Pseudocode) Retrieve the user from the database
     // after they've logged in
     let rval: any = null;
-    if (WardenValidator.validContact(contact) && StringRatchet.trimToNull(origin)) {
+    if (WardenUtils.validContact(contact) && StringRatchet.trimToNull(origin)) {
       const entry: WardenEntry = await this.storageProvider.findEntryByContact(contact);
-      rval = this.generateRegistrationOptionsForLoggedInUser(entry.userId, origin);
+      rval = this.generateWebAuthnRegistrationChallengeForLoggedInUser(entry.userId, origin);
     } else {
       ErrorRatchet.throwFormattedErr('Cannot generate options - invalid contact');
     }
     return rval;
   }
 
-  public async generateRegistrationOptionsForLoggedInUser(userId: string, origin: string): Promise<PublicKeyCredentialCreationOptionsJSON> {
+   */
+
+  // Used as the first step of adding a new WebAuthn device to an existing (logged in) user
+  // Server creates a challenge that the device will sign
+  public async generateWebAuthnRegistrationChallengeForLoggedInUser(
+    userId: string,
+    origin: string
+  ): Promise<PublicKeyCredentialCreationOptionsJSON> {
     if (!origin || !this.options.allowedOrigins.includes(origin)) {
       throw new Error('Invalid origin : ' + origin);
     }
@@ -215,6 +263,7 @@ export class WardenService {
     return options;
   }
 
+  // Given a new device's registration, add it to the specified user account as a valid login method
   public async storeAuthnRegistration(
     userId: string,
     origin: string,
@@ -281,18 +330,20 @@ export class WardenService {
     return rval;
   }
 
-  public async generateAuthenticationOptionsForContact(
+  // Helper method that looks up the contact
+  public async generateWebAuthnAuthenticationChallengeForContact(
     contact: WardenContact,
     origin: string
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
     // (Pseudocode) Retrieve the user from the database
     // after they've logged in
     const user: WardenEntry = await this.storageProvider.findEntryByContact(contact);
-    const rval: PublicKeyCredentialRequestOptionsJSON = await this.generateAuthenticationOptions(user, origin);
+    const rval: PublicKeyCredentialRequestOptionsJSON = await this.generateWebAuthnAuthenticationChallenge(user, origin);
     return rval;
   }
 
-  public async generateAuthenticationOptions(user: WardenEntry, origin: string): Promise<PublicKeyCredentialRequestOptionsJSON> {
+  // Part of the login process - for a given user, generate the challenge that the deviec will have to answer
+  public async generateWebAuthnAuthenticationChallenge(user: WardenEntry, origin: string): Promise<PublicKeyCredentialRequestOptionsJSON> {
     // (Pseudocode) Retrieve any of the user's previously-
     // registered authenticators
     const userAuthenticators: WardenWebAuthnEntry[] = user.webAuthnAuthenticators;
@@ -324,6 +375,7 @@ export class WardenService {
     return options;
   }
 
+  // For a given contact type, find the sender that can be used to send messages to it
   public senderForContact(contact: WardenContact): WardenMessageSendingProvider<any> {
     let rval: WardenMessageSendingProvider<any> = null;
     if (contact?.type) {
@@ -332,6 +384,7 @@ export class WardenService {
     return rval;
   }
 
+  // Send a single use token to this contact
   public async sendExpiringValidationToken(request: WardenContact): Promise<boolean> {
     let rval: boolean = false;
     if (request?.type && StringRatchet.trimToNull(request?.value)) {
@@ -358,10 +411,12 @@ export class WardenService {
     return rval;
   }
 
+  // Perform a login using one of several methods
+  // Delegates to functions that handle the specific methods
   public async processLogin(request: WardenLoginRequest, origin: string): Promise<boolean> {
     let rval: boolean = false;
     RequireRatchet.notNullOrUndefined(request, 'request');
-    RequireRatchet.true(WardenValidator.validContact(request?.contact), 'Invalid contact');
+    RequireRatchet.true(WardenUtils.validContact(request?.contact), 'Invalid contact');
     RequireRatchet.true(
       !!request?.webAuthn || !!StringRatchet.trimToNull(request?.expiringToken),
       'You must provide one of webAuthn or expiringToken'
@@ -393,6 +448,7 @@ export class WardenService {
     return rval;
   }
 
+  // Perform a login using webAuthn
   public async loginWithWebAuthnRequest(user: WardenEntry, origin: string, data: AuthenticationResponseJSON): Promise<boolean> {
     let rval: boolean = false;
     const asUrl: URL = new URL(origin);
@@ -430,6 +486,7 @@ export class WardenService {
     return rval;
   }
 
+  // Unregisters a device from a given user account
   public async removeSingleWebAuthnRegistration(userId: string, key: string): Promise<WardenEntry> {
     let ent: WardenEntry = await this.storageProvider.findEntryById(userId);
     if (ent) {
@@ -439,5 +496,11 @@ export class WardenService {
       Logger.info('Not removing - no such user as %s', userId);
     }
     return ent;
+  }
+
+  // Admin function - pass thru to the storage layer
+  public async removeUser(userId: string): Promise<boolean> {
+    const rval: boolean = StringRatchet.trimToNull(userId) ? await this.storageProvider.removeEntry(userId) : false;
+    return rval;
   }
 }

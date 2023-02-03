@@ -16,7 +16,14 @@ describe('#WardenService', () => {
   });
 
   it('Should create account', async () => {
-    const svc: WardenService = new WardenService({} as WardenServiceOptions, mockWardenStorageProvider, [mockWardenEmailSender], null);
+    const svc: WardenService = new WardenService(
+      {} as WardenServiceOptions,
+      mockWardenStorageProvider,
+      [mockWardenEmailSender],
+      null,
+      null,
+      null
+    );
 
     mockWardenStorageProvider.findEntryByContact.mockResolvedValue(null);
     mockWardenStorageProvider.saveEntry.mockResolvedValue({ userId: 'test' } as WardenEntry);

@@ -6,6 +6,8 @@ import { WardenEntry } from '../../common/model/warden-entry';
 import { PutObjectOutput } from 'aws-sdk/clients/s3';
 import { S3CacheRatchet } from '@bitblit/ratchet/aws';
 import { StringRatchet } from '@bitblit/ratchet/common';
+import { WardenEntrySummary } from '../../common/model/warden-entry-summary';
+import { WardenUtils } from '../../common';
 
 /*
 The most quick and dirty implementation of the storage provider.  Not a good choice if you have
@@ -16,6 +18,12 @@ export class WardenS3SingleFileStorageProvider implements WardenStorageProvider 
   private ratchet: S3CacheRatchet;
   constructor(private s3: AWS.S3, private options: WardenS3SingleFileStorageProviderOptions) {
     this.ratchet = new S3CacheRatchet(this.s3, this.options.bucket);
+  }
+
+  public async listUserSummaries(): Promise<WardenEntrySummary[]> {
+    const allData: WardenEntry[] = (await this.fetchDataFile()).entries;
+    const rval: WardenEntrySummary[] = allData.map((d) => WardenUtils.stripWardenEntryToSummary(d));
+    return rval;
   }
 
   public async fetchDataFile(): Promise<WardenS3SingleFileStorageProviderDataFile> {

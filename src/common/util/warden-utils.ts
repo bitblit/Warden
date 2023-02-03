@@ -1,8 +1,10 @@
 import { WardenContact } from '../model/warden-contact';
 import { WardenContactType } from '../model/warden-contact-type';
 import { StringRatchet } from '@bitblit/ratchet/common';
+import { WardenEntrySummary } from '../model/warden-entry-summary';
+import { WardenEntry } from '../model/warden-entry';
 
-export class WardenValidator {
+export class WardenUtils {
   // Prevent instantiation
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   constructor() {}
@@ -22,6 +24,17 @@ export class WardenValidator {
       }
     }
 
+    return rval;
+  }
+
+  public static stripWardenEntryToSummary(we: WardenEntry): WardenEntrySummary {
+    const rval: WardenEntrySummary = we
+      ? {
+          userId: we.userId,
+          userLabel: we.userLabel,
+          contactMethods: we.contactMethods,
+        }
+      : null;
     return rval;
   }
 }
