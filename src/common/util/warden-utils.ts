@@ -14,10 +14,10 @@ export class WardenUtils {
     if (contact?.type && StringRatchet.trimToNull(contact?.value)) {
       switch (contact.type) {
         case WardenContactType.EmailAddress:
-          rval = !!contact.value.match(/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/);
+          rval = WardenUtils.stringIsEmailAddress(contact.value);
           break;
         case WardenContactType.TextCapablePhoneNumber:
-          rval = !!contact.value.match(/^[\\+]?[(]?[0-9]{3}[)]?[-\\s\\.]?[0-9]{3}[-\\s\\.]?[0-9]{4,6}$/im);
+          rval = WardenUtils.stringIsPhoneNumber(contact.value);
           break;
         default:
           rval = false;
@@ -25,6 +25,14 @@ export class WardenUtils {
     }
 
     return rval;
+  }
+
+  public static stringIsEmailAddress(value: string): boolean {
+    return !!value.match(/^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/);
+  }
+
+  public static stringIsPhoneNumber(value: string): boolean {
+    return !!value.match(/^[\\+]?[(]?[0-9]{3}[)]?[-\\s\\.]?[0-9]{3}[-\\s\\.]?[0-9]{4,6}$/im);
   }
 
   public static stripWardenEntryToSummary(we: WardenEntry): WardenEntrySummary {
