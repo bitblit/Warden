@@ -67,7 +67,9 @@ export class WardenService {
       rval = JSON.stringify(resp);
     } catch (err) {
       // Just cast it directly
-      rval = JSON.stringify({ error: ErrorRatchet.safeStringifyErr(err) } as WardenCommandResponse);
+      const errString: string = ErrorRatchet.safeStringifyErr(err);
+      Logger.error('Failed %s : %j', errString, cmdString, err);
+      rval = JSON.stringify({ error: errString } as WardenCommandResponse);
     }
     return rval;
   }
@@ -76,6 +78,8 @@ export class WardenService {
   public async processCommandToResponse(cmd: WardenCommand, origin: string, loggedInUserId: string): Promise<WardenCommandResponse> {
     let rval: WardenCommandResponse = null;
     if (cmd) {
+      Logger.info('Processing command : %s : %s : %j', loggedInUserId, origin, cmd);
+
       if (cmd.sendExpiringValidationToken) {
         rval = { sendExpiringValidationToken: await this.sendExpiringValidationToken(cmd.sendExpiringValidationToken) };
       } else if (cmd.generateWebAuthnAuthenticationChallenge) {
@@ -414,6 +418,7 @@ export class WardenService {
   // Perform a login using one of several methods
   // Delegates to functions that handle the specific methods
   public async processLogin(request: WardenLoginRequest, origin: string): Promise<boolean> {
+    Logger.info('Processing login : %s : %j', origin, request);
     let rval: boolean = false;
     RequireRatchet.notNullOrUndefined(request, 'request');
     RequireRatchet.true(WardenUtils.validContact(request?.contact), 'Invalid contact');
