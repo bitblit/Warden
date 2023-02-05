@@ -1,7 +1,7 @@
 //    Service for interacting with positions for a given user
 import { WardenCommand } from '../common/command/warden-command';
 import { WardenContact } from '../common/model/warden-contact';
-import { WardenCommandSender } from './warden-command-sender';
+import { WardenCommandExchangeProvider } from './provider/warden-command-exchange-provider';
 import { WardenCommandResponse } from '../common/command/warden-command-response';
 import { ErrorRatchet, Logger, StringRatchet } from '@bitblit/ratchet/common';
 import {
@@ -13,9 +13,14 @@ import {
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import { WardenLoginResults } from '../common/model/warden-login-results';
 import { WardenLoginRequest } from '../common/model/warden-login-request';
+import { WardenClientRecentLoginProvider } from './provider/warden-client-recent-login-provider';
 
 export class WardenClient {
-  constructor(private commandSender: WardenCommandSender) {}
+  constructor(private commandSender: WardenCommandExchangeProvider, private _recentLoginProvider?: WardenClientRecentLoginProvider) {}
+
+  public get recentLoginProvider(): WardenClientRecentLoginProvider {
+    return this._recentLoginProvider;
+  }
 
   public async exchangeCommand(cmd: WardenCommand, returnErrors?: boolean): Promise<WardenCommandResponse> {
     const asString: string = JSON.stringify(cmd);
@@ -38,6 +43,11 @@ export class WardenClient {
       },
     };
     const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
+
+    if (this.recentLoginProvider && StringRatchet.trimToNull(rval.createAccount)) {
+      await this.recentLoginProvider.addContactLogin(rval.createAccount, contact);
+    }
+
     return rval.createAccount;
   }
 
@@ -100,6 +110,15 @@ export class WardenClient {
       performLogin: login,
     };
     const cmdResponse: WardenCommandResponse = await this.exchangeCommand(loginCmd);
+    // Only store if we have a provider, and it was a successful login
+    if (this.recentLoginProvider && StringRatchet.trimToNull(cmdResponse.performLogin.jwtToken)) {
+      if (login.contact) {
+        await this.recentLoginProvider.addContactLogin(cmdResponse.performLogin.userId, login.contact);
+      } else if (login.webAuthn) {
+        await this.recentLoginProvider.addWebAuthnLogin(cmdResponse.performLogin.userId);
+      }
+    }
+
     return cmdResponse.performLogin;
   }
 

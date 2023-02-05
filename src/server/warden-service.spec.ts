@@ -1,10 +1,14 @@
 import { WardenStorageProvider } from './provider/warden-storage-provider';
 import { JestRatchet } from '@bitblit/ratchet/jest';
 import { WardenService } from './warden-service';
-import { WardenServiceOptions } from '../common/model/warden-service-options';
+import { WardenServiceOptions } from './warden-service-options';
 import { WardenContactType } from '../common/model/warden-contact-type';
 import { WardenMessageSendingProvider } from './provider/warden-message-sending-provider';
 import { WardenEntry } from '../common/model/warden-entry';
+import { ExpiringCodeProvider } from '@bitblit/ratchet/aws';
+import { JwtRatchetLike } from '@bitblit/ratchet/common';
+import { WardenUserTokenDataProvider } from './provider/warden-user-token-data-provider';
+import { WardenEventProcessingProvider } from './provider/warden-event-processing-provider';
 
 let mockWardenStorageProvider: jest.Mocked<WardenStorageProvider>;
 let mockWardenEmailSender: jest.Mocked<WardenMessageSendingProvider<any>>;
@@ -16,14 +20,20 @@ describe('#WardenService', () => {
   });
 
   it('Should create account', async () => {
-    const svc: WardenService = new WardenService(
-      {} as WardenServiceOptions,
-      mockWardenStorageProvider,
-      [mockWardenEmailSender],
-      null,
-      null,
-      null
-    );
+    const opts: WardenServiceOptions = {
+      // Human-readable title for your website
+      relyingPartyName: 'rp',
+      allowedOrigins: ['origin'],
+
+      storageProvider: mockWardenStorageProvider,
+      messageSendingProviders: [mockWardenEmailSender],
+      expiringCodeProvider: undefined,
+      jwtRatchet: undefined,
+      userTokenDataProvider: undefined,
+      eventProcessor: undefined,
+    };
+
+    const svc: WardenService = new WardenService(opts);
 
     mockWardenStorageProvider.findEntryByContact.mockResolvedValue(null);
     mockWardenStorageProvider.saveEntry.mockResolvedValue({ userId: 'test' } as WardenEntry);

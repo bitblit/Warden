@@ -3,6 +3,6 @@
  * send expiring, single
  */
 
-export interface WardenCommandSender {
+export interface WardenCommandExchangeProvider {
   sendCommand(cmdString: string): Promise<string>;
 }

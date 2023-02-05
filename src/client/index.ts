@@ -3,4 +3,9 @@
  */
 
 export * from './warden-client';
-export * from './warden-command-sender';
+export * from './provider/warden-client-abstract-recent-login-provider';
+export * from './provider/warden-client-local-storage-recent-login-provider';
+export * from './provider/warden-client-recent-login-provider';
+export * from './provider/warden-client-transient-memory-recent-login-provider';
+export * from './provider/warden-command-exchange-provider';
+export * from './provider/warden-recent-login-descriptor';

@@ -16,8 +16,7 @@ import {
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
 } from '@simplewebauthn/typescript-types';
-import { WardenServiceOptions } from '../common/model/warden-service-options';
-import { WardenStorageProvider } from './provider/warden-storage-provider';
+import { WardenServiceOptions } from './warden-service-options';
 import { WardenContact } from '../common/model/warden-contact';
 import { WardenEntry } from '../common/model/warden-entry';
 import { WardenStoreRegistrationResponse } from '../common/model/warden-store-registration-response';
@@ -26,36 +25,35 @@ import { WardenMessageSendingProvider } from './provider/warden-message-sending-
 import { WardenLoginRequest } from '../common/model/warden-login-request';
 import { WardenStoreRegistrationResponseType } from '../common/model/warden-store-registration-response-type';
 import { WardenCustomerMessageType } from '../common/model/warden-customer-message-type';
-import { ExpiringCode, ExpiringCodeProvider, ExpiringCodeRatchet } from '@bitblit/ratchet/aws';
-import {
-  Base64Ratchet,
-  ErrorRatchet,
-  ExpiredJwtHandling,
-  JwtRatchetLike,
-  Logger,
-  RequireRatchet,
-  StringRatchet,
-} from '@bitblit/ratchet/common';
+import { ExpiringCode, ExpiringCodeRatchet } from '@bitblit/ratchet/aws';
+import { Base64Ratchet, ErrorRatchet, ExpiredJwtHandling, Logger, RequireRatchet, StringRatchet } from '@bitblit/ratchet/common';
 import { WardenCommandResponse } from '../common/command/warden-command-response';
 import { WardenCommand } from '../common/command/warden-command';
 import { WardenUtils } from '../common/util/warden-utils';
-import { WardenUserTokenDataProvider } from './provider/warden-user-token-data-provider';
-import { WardenDefaultUserTokenDataProvider } from './provider/warden-default-user-token-data-provider';
 import { WardenJwtToken } from '../common/model/warden-jwt-token';
 import { WardenLoginResults } from '../common';
+import { WardenDefaultUserTokenDataProvider } from './provider/warden-default-user-token-data-provider';
+import { WardenNoOpEventProcessingProvider } from './provider/warden-no-op-event-processing-provider';
 
 export class WardenService {
+  private opts: WardenServiceOptions;
   private expiringCodeRatchet: ExpiringCodeRatchet;
 
-  constructor(
-    private options: WardenServiceOptions,
-    private storageProvider: WardenStorageProvider,
-    private messageSendingProviders: WardenMessageSendingProvider<any>[],
-    private expiringCodeProvider: ExpiringCodeProvider,
-    private jwtRatchetLike: JwtRatchetLike,
-    private userTokenDataProvider: WardenUserTokenDataProvider<any> = new WardenDefaultUserTokenDataProvider()
-  ) {
-    this.expiringCodeRatchet = new ExpiringCodeRatchet(this.expiringCodeProvider);
+  constructor(private inOptions: WardenServiceOptions) {
+    RequireRatchet.notNullOrUndefined(inOptions, 'options');
+    RequireRatchet.notNullOrUndefined(inOptions.relyingPartyName, 'options.relyingPartyName');
+    RequireRatchet.notNullUndefinedOrEmptyArray(inOptions.allowedOrigins, 'options.allowedOrigins');
+    RequireRatchet.notNullOrUndefined(inOptions.storageProvider, 'options.storageProvider');
+    RequireRatchet.notNullUndefinedOrEmptyArray(inOptions.messageSendingProviders, 'options.messageSendingProviders');
+    RequireRatchet.notNullOrUndefined(inOptions.expiringCodeProvider, 'options.expiringCodeProvider');
+    RequireRatchet.notNullOrUndefined(inOptions.jwtRatchet, 'options.jwtRatchet');
+
+    this.opts = Object.assign(
+      { userTokenDataProvider: new WardenDefaultUserTokenDataProvider(), eventProcessor: new WardenNoOpEventProcessingProvider() },
+      inOptions
+    );
+
+    this.expiringCodeRatchet = new ExpiringCodeRatchet(this.opts.expiringCodeProvider);
   }
 
   // A helper function for bridging across GraphQL as an embedded JSON command
@@ -129,32 +127,26 @@ export class WardenService {
         const loginOk: boolean = await this.processLogin(loginData, origin);
         Logger.info('Performing login - login auth check was : %s', loginOk);
         if (loginOk) {
-          const user: WardenEntry = await this.storageProvider.findEntryByContact(loginData.contact);
-          Logger.info('User: %j', user);
-          const expirationSeconds: number = await this.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
-          Logger.info('expirationSeconds: %j', expirationSeconds);
-          const userData: any = await this.userTokenDataProvider.fetchUserTokenData(user);
-          Logger.info('userData: %j', userData);
-          const roles: string[] = await this.userTokenDataProvider.fetchUserRoles(user);
-          Logger.info('roles: %j', roles);
+          const user: WardenEntry = await this.opts.storageProvider.findEntryByContact(loginData.contact);
+          const expirationSeconds: number = await this.opts.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
+          const userData: any = await this.opts.userTokenDataProvider.fetchUserTokenData(user);
+          const roles: string[] = await this.opts.userTokenDataProvider.fetchUserRoles(user);
           const wardenToken: WardenJwtToken<any> = { userId: user.userId, user: userData, roles: roles, proxy: null };
-          Logger.info('wardenToken: %j', wardenToken);
-          const jwtToken: string = await this.jwtRatchetLike.createTokenString(wardenToken, expirationSeconds);
-          Logger.info('jwtToken: %j', jwtToken);
+          const jwtToken: string = await this.opts.jwtRatchet.createTokenString(wardenToken, expirationSeconds);
           const output: WardenLoginResults = {
             request: loginData,
+            userId: user.userId,
             jwtToken: jwtToken,
           };
-          Logger.info('output: %j', output);
           rval = { performLogin: output };
         } else {
           rval = { error: 'Login failed' };
         }
       } else if (cmd.refreshJwtToken) {
-        const parsed: WardenJwtToken<any> = await this.jwtRatchetLike.decodeToken(cmd.refreshJwtToken, ExpiredJwtHandling.THROW_EXCEPTION);
-        const user: WardenEntry = await this.storageProvider.findEntryById(parsed.userId);
-        const expirationSeconds: number = await this.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
-        const newToken: string = await this.jwtRatchetLike.refreshJWTString(cmd.refreshJwtToken, false, expirationSeconds);
+        const parsed: WardenJwtToken<any> = await this.opts.jwtRatchet.decodeToken(cmd.refreshJwtToken, ExpiredJwtHandling.THROW_EXCEPTION);
+        const user: WardenEntry = await this.opts.storageProvider.findEntryById(parsed.userId);
+        const expirationSeconds: number = await this.opts.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
+        const newToken: string = await this.opts.jwtRatchet.refreshJWTString(cmd.refreshJwtToken, false, expirationSeconds);
         rval = {
           refreshJwtToken: newToken,
         };
@@ -169,7 +161,7 @@ export class WardenService {
   public async createAccount(contact: WardenContact, sendCode?: boolean, label?: string, tags?: string[]): Promise<string> {
     let rval: string = null;
     if (WardenUtils.validContact(contact)) {
-      const old: WardenEntry = await this.storageProvider.findEntryByContact(contact);
+      const old: WardenEntry = await this.opts.storageProvider.findEntryByContact(contact);
       if (!!old) {
         ErrorRatchet.throwFormattedErr('Cannot create - account already exists for %j', contact);
       }
@@ -189,8 +181,9 @@ export class WardenService {
         createdEpochMS: now,
         updatedEpochMS: now,
       };
-      const next: WardenEntry = await this.storageProvider.saveEntry(newUser);
+      const next: WardenEntry = await this.opts.storageProvider.saveEntry(newUser);
       rval = next.userId;
+      await this.opts.eventProcessor.userCreated(next);
 
       if (sendCode) {
         Logger.info('New user %j created and send requested - sending', next);
@@ -208,16 +201,16 @@ export class WardenService {
   public async addContactMethodToUser(userId: string, contact: WardenContact): Promise<boolean> {
     let rval: boolean = false;
     if (StringRatchet.trimToNull(userId) && WardenUtils.validContact(contact)) {
-      const otherUser: WardenEntry = await this.storageProvider.findEntryByContact(contact);
+      const otherUser: WardenEntry = await this.opts.storageProvider.findEntryByContact(contact);
       if (otherUser && otherUser.userId !== userId) {
         ErrorRatchet.throwFormattedErr('Cannot add contact to this user, another user already has that contact');
       }
-      const curUser: WardenEntry = await this.storageProvider.findEntryById(userId);
+      const curUser: WardenEntry = await this.opts.storageProvider.findEntryById(userId);
       if (!curUser) {
         ErrorRatchet.throwFormattedErr('Cannot add contact to this user, user does not exist');
       }
       curUser.contactMethods.push(contact);
-      await this.storageProvider.saveEntry(curUser);
+      await this.opts.storageProvider.saveEntry(curUser);
       rval = true;
     } else {
       ErrorRatchet.throwFormattedErr('Cannot add - invalid config : %s %j', userId, contact);
@@ -250,15 +243,15 @@ export class WardenService {
     userId: string,
     origin: string
   ): Promise<PublicKeyCredentialCreationOptionsJSON> {
-    if (!origin || !this.options.allowedOrigins.includes(origin)) {
+    if (!origin || !this.opts.allowedOrigins.includes(origin)) {
       throw new Error('Invalid origin : ' + origin);
     }
     const asUrl: URL = new URL(origin);
     const rpID: string = asUrl.hostname;
 
-    const entry: WardenEntry = await this.storageProvider.findEntryById(userId);
+    const entry: WardenEntry = await this.opts.storageProvider.findEntryById(userId);
     const options = generateRegistrationOptions({
-      rpName: this.options.relyingPartyName,
+      rpName: this.opts.relyingPartyName,
       rpID: rpID,
       userID: entry.userId,
       userName: entry.userLabel,
@@ -274,7 +267,7 @@ export class WardenService {
       })),
     });
 
-    await this.storageProvider.updateUserChallenge(entry.userId, rpID, options.challenge);
+    await this.opts.storageProvider.updateUserChallenge(entry.userId, rpID, options.challenge);
 
     return options;
   }
@@ -288,15 +281,15 @@ export class WardenService {
     Logger.info('Store authn data : %j', data);
     let rval: WardenStoreRegistrationResponse = null;
     try {
-      if (!origin || !this.options.allowedOrigins.includes(origin)) {
+      if (!origin || !this.opts.allowedOrigins.includes(origin)) {
         throw new Error('Invalid origin : ' + origin);
       }
       const asUrl: URL = new URL(origin);
       const rpID: string = asUrl.hostname;
 
-      const user: WardenEntry = await this.storageProvider.findEntryById(userId);
+      const user: WardenEntry = await this.opts.storageProvider.findEntryById(userId);
       // (Pseudocode) Get `options.challenge` that was saved above
-      const expectedChallenge: string = await this.storageProvider.fetchCurrentUserChallenge(user.userId, rpID);
+      const expectedChallenge: string = await this.opts.storageProvider.fetchCurrentUserChallenge(user.userId, rpID);
 
       const vrOpts: VerifyRegistrationResponseOpts = {
         response: data,
@@ -332,7 +325,7 @@ export class WardenService {
           (wa) => wa.credentialIdBase64 !== newAuth.credentialIdBase64
         );
         user.webAuthnAuthenticators.push(newAuth);
-        const storedUser: WardenEntry = await this.storageProvider.saveEntry(user);
+        const storedUser: WardenEntry = await this.opts.storageProvider.saveEntry(user);
         Logger.info('Stored auth : %j', storedUser);
       }
     } catch (err) {
@@ -353,7 +346,7 @@ export class WardenService {
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
     // (Pseudocode) Retrieve the user from the database
     // after they've logged in
-    const user: WardenEntry = await this.storageProvider.findEntryByContact(contact);
+    const user: WardenEntry = await this.opts.storageProvider.findEntryByContact(contact);
     const rval: PublicKeyCredentialRequestOptionsJSON = await this.generateWebAuthnAuthenticationChallenge(user, origin);
     return rval;
   }
@@ -363,7 +356,7 @@ export class WardenService {
     // (Pseudocode) Retrieve any of the user's previously-
     // registered authenticators
     const userAuthenticators: WardenWebAuthnEntry[] = user.webAuthnAuthenticators;
-    if (!origin || !this.options.allowedOrigins.includes(origin)) {
+    if (!origin || !this.opts.allowedOrigins.includes(origin)) {
       throw new Error('Invalid origin : ' + origin);
     }
     const asUrl: URL = new URL(origin);
@@ -386,7 +379,7 @@ export class WardenService {
     });
 
     // (Pseudocode) Remember this challenge for this user
-    await this.storageProvider.updateUserChallenge(user.userId, rpID, options.challenge);
+    await this.opts.storageProvider.updateUserChallenge(user.userId, rpID, options.challenge);
 
     return options;
   }
@@ -395,7 +388,7 @@ export class WardenService {
   public senderForContact(contact: WardenContact): WardenMessageSendingProvider<any> {
     let rval: WardenMessageSendingProvider<any> = null;
     if (contact?.type) {
-      rval = (this.messageSendingProviders || []).find((p) => p.handlesContactType(contact.type));
+      rval = (this.opts.messageSendingProviders || []).find((p) => p.handlesContactType(contact.type));
     }
     return rval;
   }
@@ -415,7 +408,7 @@ export class WardenService {
         });
         const msg: any = await prov.formatMessage(request, WardenCustomerMessageType.ExpiringCode, {
           code: token.code,
-          relyingPartyName: this.options.relyingPartyName,
+          relyingPartyName: this.opts.relyingPartyName,
         });
         rval = await prov.sendMessage(request, msg);
       } else {
@@ -443,7 +436,7 @@ export class WardenService {
       'WebAuthn and ExpiringToken may not BOTH be set'
     );
 
-    const user: WardenEntry = await this.storageProvider.findEntryByContact(request.contact);
+    const user: WardenEntry = await this.opts.storageProvider.findEntryByContact(request.contact);
     if (!user) {
       ErrorRatchet.throwFormattedErr('No user found for %j', request.contact);
     }
@@ -470,7 +463,7 @@ export class WardenService {
     let rval: boolean = false;
     const asUrl: URL = new URL(origin);
     const rpID: string = asUrl.hostname;
-    const expectedChallenge: string = await this.storageProvider.fetchCurrentUserChallenge(user.userId, rpID);
+    const expectedChallenge: string = await this.opts.storageProvider.fetchCurrentUserChallenge(user.userId, rpID);
 
     // (Pseudocode} Retrieve an authenticator from the DB that
     // should match the `id` in the returned credential
@@ -505,10 +498,10 @@ export class WardenService {
 
   // Unregisters a device from a given user account
   public async removeSingleWebAuthnRegistration(userId: string, key: string): Promise<WardenEntry> {
-    let ent: WardenEntry = await this.storageProvider.findEntryById(userId);
+    let ent: WardenEntry = await this.opts.storageProvider.findEntryById(userId);
     if (ent) {
       ent.webAuthnAuthenticators = (ent.webAuthnAuthenticators || []).filter((s) => s.credentialIdBase64 !== key);
-      ent = await this.storageProvider.saveEntry(ent);
+      ent = await this.opts.storageProvider.saveEntry(ent);
     } else {
       Logger.info('Not removing - no such user as %s', userId);
     }
@@ -517,7 +510,18 @@ export class WardenService {
 
   // Admin function - pass thru to the storage layer
   public async removeUser(userId: string): Promise<boolean> {
-    const rval: boolean = StringRatchet.trimToNull(userId) ? await this.storageProvider.removeEntry(userId) : false;
+    let rval: boolean = false;
+    if (StringRatchet.trimToNull(userId)) {
+      const oldUser: WardenEntry = await this.opts.storageProvider.findEntryById(userId);
+      if (oldUser) {
+        await this.opts.storageProvider.removeEntry(userId);
+        await this.opts.eventProcessor.userRemoved(oldUser);
+        rval = true;
+      } else {
+        Logger.warn('Cannot remove non-existant user : %s', userId);
+      }
+    }
+
     return rval;
   }
 }
