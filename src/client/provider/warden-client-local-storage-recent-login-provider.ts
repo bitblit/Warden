@@ -12,12 +12,12 @@ export class WardenClientLocalStorageRecentLoginProvider extends WardenClientAbs
   }
 
   fetchCache(): WardenRecentLoginDescriptor[] {
-    const asString: string = StringRatchet.trimToNull(localStorage.get(StringRatchet.trimToNull(this.localStorageKey)));
+    const asString: string = StringRatchet.trimToNull(localStorage.getItem(StringRatchet.trimToNull(this.localStorageKey)));
     return asString ? JSON.parse(asString) : [];
   }
 
   updateCache(newValue: WardenRecentLoginDescriptor[]) {
     const asString: string = newValue ? JSON.stringify(newValue) : '[]';
-    localStorage.set(StringRatchet.trimToNull(this.localStorageKey), asString);
+    localStorage.setItem(StringRatchet.trimToNull(this.localStorageKey), asString);
   }
 }
