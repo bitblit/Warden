@@ -64,7 +64,11 @@ export class WardenService {
     try {
       const cmd: WardenCommand = JSON.parse(cmdString);
       const resp: WardenCommandResponse = await this.processCommandToResponse(cmd, origin, loggedInUserId);
-      rval = JSON.stringify(resp);
+      if (resp === null) {
+        Logger.warn('Response was null for %s %s %s', cmdString, origin, loggedInUserId);
+      } else {
+        rval = JSON.stringify(resp);
+      }
     } catch (err) {
       // Just cast it directly
       const errString: string = ErrorRatchet.safeStringifyErr(err);
@@ -78,7 +82,7 @@ export class WardenService {
   public async processCommandToResponse(cmd: WardenCommand, origin: string, loggedInUserId: string): Promise<WardenCommandResponse> {
     let rval: WardenCommandResponse = null;
     if (cmd) {
-      Logger.info('Processing command : %s : %s : %j', loggedInUserId, origin, cmd);
+      Logger.info('Processing command : UserID: %s  Origin: %s Command: %j', loggedInUserId, origin, cmd);
 
       if (cmd.sendExpiringValidationToken) {
         rval = { sendExpiringValidationToken: await this.sendExpiringValidationToken(cmd.sendExpiringValidationToken) };
@@ -124,17 +128,25 @@ export class WardenService {
     } else if (cmd.performLogin) {
       const loginData: WardenLoginRequest = cmd.performLogin;
       const loginOk: boolean = await this.processLogin(loginData, origin);
+      Logger.info('Performing login - login auth check was : %s', loginOk);
       if (loginOk) {
         const user: WardenEntry = await this.storageProvider.findEntryByContact(loginData.contact);
+        Logger.info('User: %j', user);
         const expirationSeconds: number = await this.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
+        Logger.info('expirationSeconds: %j', expirationSeconds);
         const userData: any = await this.userTokenDataProvider.fetchUserTokenData(user);
+        Logger.info('userData: %j', userData);
         const roles: string[] = await this.userTokenDataProvider.fetchUserRoles(user);
+        Logger.info('roles: %j', roles);
         const wardenToken: WardenJwtToken<any> = { userId: user.userId, user: userData, roles: roles, proxy: null };
+        Logger.info('wardenToken: %j', wardenToken);
         const jwtToken: string = await this.jwtRatchetLike.createTokenString(wardenToken, expirationSeconds);
+        Logger.info('jwtToken: %j', jwtToken);
         const output: WardenLoginResults = {
           request: loginData,
           jwtToken: jwtToken,
         };
+        Logger.info('output: %j', output);
         rval = { performLogin: output };
       } else {
         rval = { error: 'Login failed' };
