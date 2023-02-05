@@ -124,41 +124,41 @@ export class WardenService {
             cmd.removeWebAuthnRegistration.credentialId
           )),
         };
-      }
-    } else if (cmd.performLogin) {
-      const loginData: WardenLoginRequest = cmd.performLogin;
-      const loginOk: boolean = await this.processLogin(loginData, origin);
-      Logger.info('Performing login - login auth check was : %s', loginOk);
-      if (loginOk) {
-        const user: WardenEntry = await this.storageProvider.findEntryByContact(loginData.contact);
-        Logger.info('User: %j', user);
+      } else if (cmd.performLogin) {
+        const loginData: WardenLoginRequest = cmd.performLogin;
+        const loginOk: boolean = await this.processLogin(loginData, origin);
+        Logger.info('Performing login - login auth check was : %s', loginOk);
+        if (loginOk) {
+          const user: WardenEntry = await this.storageProvider.findEntryByContact(loginData.contact);
+          Logger.info('User: %j', user);
+          const expirationSeconds: number = await this.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
+          Logger.info('expirationSeconds: %j', expirationSeconds);
+          const userData: any = await this.userTokenDataProvider.fetchUserTokenData(user);
+          Logger.info('userData: %j', userData);
+          const roles: string[] = await this.userTokenDataProvider.fetchUserRoles(user);
+          Logger.info('roles: %j', roles);
+          const wardenToken: WardenJwtToken<any> = { userId: user.userId, user: userData, roles: roles, proxy: null };
+          Logger.info('wardenToken: %j', wardenToken);
+          const jwtToken: string = await this.jwtRatchetLike.createTokenString(wardenToken, expirationSeconds);
+          Logger.info('jwtToken: %j', jwtToken);
+          const output: WardenLoginResults = {
+            request: loginData,
+            jwtToken: jwtToken,
+          };
+          Logger.info('output: %j', output);
+          rval = { performLogin: output };
+        } else {
+          rval = { error: 'Login failed' };
+        }
+      } else if (cmd.refreshJwtToken) {
+        const parsed: WardenJwtToken<any> = await this.jwtRatchetLike.decodeToken(cmd.refreshJwtToken, ExpiredJwtHandling.THROW_EXCEPTION);
+        const user: WardenEntry = await this.storageProvider.findEntryById(parsed.userId);
         const expirationSeconds: number = await this.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
-        Logger.info('expirationSeconds: %j', expirationSeconds);
-        const userData: any = await this.userTokenDataProvider.fetchUserTokenData(user);
-        Logger.info('userData: %j', userData);
-        const roles: string[] = await this.userTokenDataProvider.fetchUserRoles(user);
-        Logger.info('roles: %j', roles);
-        const wardenToken: WardenJwtToken<any> = { userId: user.userId, user: userData, roles: roles, proxy: null };
-        Logger.info('wardenToken: %j', wardenToken);
-        const jwtToken: string = await this.jwtRatchetLike.createTokenString(wardenToken, expirationSeconds);
-        Logger.info('jwtToken: %j', jwtToken);
-        const output: WardenLoginResults = {
-          request: loginData,
-          jwtToken: jwtToken,
+        const newToken: string = await this.jwtRatchetLike.refreshJWTString(cmd.refreshJwtToken, false, expirationSeconds);
+        rval = {
+          refreshJwtToken: newToken,
         };
-        Logger.info('output: %j', output);
-        rval = { performLogin: output };
-      } else {
-        rval = { error: 'Login failed' };
       }
-    } else if (cmd.refreshJwtToken) {
-      const parsed: WardenJwtToken<any> = await this.jwtRatchetLike.decodeToken(cmd.refreshJwtToken, ExpiredJwtHandling.THROW_EXCEPTION);
-      const user: WardenEntry = await this.storageProvider.findEntryById(parsed.userId);
-      const expirationSeconds: number = await this.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
-      const newToken: string = await this.jwtRatchetLike.refreshJWTString(cmd.refreshJwtToken, false, expirationSeconds);
-      rval = {
-        refreshJwtToken: newToken,
-      };
     } else {
       rval = { error: 'No command sent' };
     }
