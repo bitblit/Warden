@@ -183,7 +183,9 @@ export class WardenService {
       };
       const next: WardenEntry = await this.opts.storageProvider.saveEntry(newUser);
       rval = next.userId;
-      await this.opts.eventProcessor.userCreated(next);
+      if (this?.opts?.eventProcessor) {
+        await this.opts.eventProcessor.userCreated(next);
+      }
 
       if (sendCode) {
         Logger.info('New user %j created and send requested - sending', next);
@@ -515,10 +517,12 @@ export class WardenService {
       const oldUser: WardenEntry = await this.opts.storageProvider.findEntryById(userId);
       if (oldUser) {
         await this.opts.storageProvider.removeEntry(userId);
-        await this.opts.eventProcessor.userRemoved(oldUser);
+        if (this?.opts?.eventProcessor) {
+          await this.opts.eventProcessor.userRemoved(oldUser);
+        }
         rval = true;
       } else {
-        Logger.warn('Cannot remove non-existant user : %s', userId);
+        Logger.warn('Cannot remove non-existent user : %s', userId);
       }
     }
 

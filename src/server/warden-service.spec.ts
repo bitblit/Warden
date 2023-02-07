@@ -10,13 +10,17 @@ import { JwtRatchetLike } from '@bitblit/ratchet/common';
 import { WardenUserTokenDataProvider } from './provider/warden-user-token-data-provider';
 import { WardenEventProcessingProvider } from './provider/warden-event-processing-provider';
 
+let mockJwtRatchet: jest.Mocked<JwtRatchetLike>;
 let mockWardenStorageProvider: jest.Mocked<WardenStorageProvider>;
+let mockExpiringCodeProvider: jest.Mocked<ExpiringCodeProvider>;
 let mockWardenEmailSender: jest.Mocked<WardenMessageSendingProvider<any>>;
 
 describe('#WardenService', () => {
   beforeEach(() => {
+    mockJwtRatchet = JestRatchet.mock<JwtRatchetLike>();
     mockWardenStorageProvider = JestRatchet.mock<WardenStorageProvider>();
     mockWardenEmailSender = JestRatchet.mock<WardenMessageSendingProvider<any>>();
+    mockExpiringCodeProvider = JestRatchet.mock<ExpiringCodeProvider>();
   });
 
   it('Should create account', async () => {
@@ -27,8 +31,8 @@ describe('#WardenService', () => {
 
       storageProvider: mockWardenStorageProvider,
       messageSendingProviders: [mockWardenEmailSender],
-      expiringCodeProvider: undefined,
-      jwtRatchet: undefined,
+      expiringCodeProvider: mockExpiringCodeProvider,
+      jwtRatchet: mockJwtRatchet,
       userTokenDataProvider: undefined,
       eventProcessor: undefined,
     };
