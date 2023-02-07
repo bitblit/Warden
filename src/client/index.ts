@@ -3,9 +3,16 @@
  */
 
 export * from './warden-client';
+export * from './warden-user-service';
 export * from './provider/warden-client-abstract-recent-login-provider';
+export * from './provider/warden-client-local-storage-logged-in-user-provider';
 export * from './provider/warden-client-local-storage-recent-login-provider';
 export * from './provider/warden-client-recent-login-provider';
+export * from './provider/warden-client-transient-memory-logged-in-user-provider';
 export * from './provider/warden-client-transient-memory-recent-login-provider';
 export * from './provider/warden-command-exchange-provider';
+export * from './provider/warden-logged-in-user-provider';
+export * from './provider/warden-logged-in-user-wrapper';
 export * from './provider/warden-recent-login-descriptor';
+export * from './provider/warden-user-service-event-processing-provider';
+export * from './provider/warden-user-service-options';
