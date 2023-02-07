@@ -15,13 +15,12 @@ import { BehaviorSubject, Subscription } from 'rxjs';
 export class WardenDelegatingCurrentUserProvidingUserServiceEventProcessingProvider<T>
   implements WardenUserServiceEventProcessingProvider<T>
 {
-  private currentUserSubject: BehaviorSubject<WardenLoggedInUserWrapper<T>> = new BehaviorSubject<WardenLoggedInUserWrapper<T>>(null);
+  private _currentUserSubject: BehaviorSubject<WardenLoggedInUserWrapper<T>> = new BehaviorSubject<WardenLoggedInUserWrapper<T>>(null);
 
   constructor(private wrapped?: WardenUserServiceEventProcessingProvider<T>) {}
 
-  // Doing it this way because I don't want dependants to be able to call .next(xxx)
-  public subscribeToCurrentUserSubject(val: (WardenLoggedInUserWrapper) => void): Subscription {
-    return this.currentUserSubject.subscribe(val);
+  public get currentUserSubject(): BehaviorSubject<WardenLoggedInUserWrapper<T>> {
+    return this._currentUserSubject;
   }
 
   public async onAutomaticLogout(): Promise<void> {
