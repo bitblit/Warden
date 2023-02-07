@@ -6,7 +6,7 @@ import { WardenLoggedInUserWrapper } from './provider/warden-logged-in-user-wrap
 import { WardenContact } from '../common/model/warden-contact';
 import { WardenJwtToken } from '../common/model/warden-jwt-token';
 import { WardenLoginResults } from '../common/model/warden-login-results';
-import { StringRatchet } from '@bitblit/ratchet/common';
+import { No, StringRatchet } from '@bitblit/ratchet/common';
 
 /**
  * A service that handles logging in, saving the current user, watching
@@ -21,6 +21,17 @@ export class WardenUserService<T> {
 
   constructor(private options: WardenUserServiceOptions<T>) {
     Logger.info('Initializing user service');
+    // Immediately read from storage if there is something there
+    const stored: WardenLoggedInUserWrapper<T> = this.options.loggedInUserProvider.fetchLoggedInUserWrapper();
+    if (WardenUserService.wrapperIsExpired(stored)) {
+      // Not treating this as a logout since it basically never logged in, just clearing it
+      Logger.info('Stored token is expired, removing it');
+      this.options.loggedInUserProvider.logOutUser();
+    } else {
+      // Fire the login event in case anything needs to know about the current user
+      this.options.eventProcessor.onSuccessfulLogin(stored).then(No.op);
+    }
+
     const timerSeconds: number = this.options.loginCheckTimerPingSeconds || 2.5;
     this.loggedInTimerSubscription = timer(0, timerSeconds * 1000).subscribe((t) => this.checkForAutoLogoutOrRefresh(t));
   }
@@ -66,10 +77,15 @@ export class WardenUserService<T> {
     await this.options.eventProcessor.onLogout();
   }
 
+  public static wrapperIsExpired(value: WardenLoggedInUserWrapper<any>): boolean {
+    const rval: boolean = value?.userObject?.exp && value.expirationEpochSeconds < Date.now() / 1000;
+    return rval;
+  }
+
   public async fetchLoggedInUserWrapper(): Promise<WardenLoggedInUserWrapper<T>> {
     let tmp: WardenLoggedInUserWrapper<T> = this.options.loggedInUserProvider.fetchLoggedInUserWrapper();
     if (tmp) {
-      if (tmp.expirationEpochSeconds < Date.now() / 1000) {
+      if (WardenUserService.wrapperIsExpired(tmp)) {
         // This is belt-and-suspenders for when the window was not open - during normal operation either
         // auto-logout thread or auto-refresh thread would have handled this
         Logger.info('Token is expired - auto logout triggered');
