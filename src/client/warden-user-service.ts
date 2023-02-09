@@ -177,10 +177,8 @@ export class WardenUserService<T> {
     return this.options.wardenClient.sendExpiringValidationToken(contact);
   }
 
-  public async executeValidationTokenBasedLogin(contact: WardenContact, token: string): Promise<WardenLoggedInUserWrapper<T>> {
+  private async processWardenLoginResults(resp: WardenLoginResults): Promise<WardenLoggedInUserWrapper<T>> {
     let rval: WardenLoggedInUserWrapper<T> = null;
-    Logger.info('Warden: executeValidationTokenBasedLogin : %j : %s ', contact, token);
-    const resp: WardenLoginResults = await this.options.wardenClient.performLoginCmd({ contact: contact, expiringToken: token });
     if (resp) {
       Logger.info('Warden: response : %j ', resp);
       if (resp.jwtToken) {
@@ -196,6 +194,19 @@ export class WardenUserService<T> {
       Logger.error('Login call failed');
       this.options.eventProcessor.onLoginFailure('Login call returned null');
     }
+    return rval;
+  }
+
+  public async executeWebAuthnBasedLogin(contact: WardenContact): Promise<WardenLoggedInUserWrapper<T>> {
+    const resp: WardenLoginResults = await this.options.wardenClient.executeWebAuthNLogin(contact);
+    const rval: WardenLoggedInUserWrapper<T> = await this.processWardenLoginResults(resp);
+    return rval;
+  }
+
+  public async executeValidationTokenBasedLogin(contact: WardenContact, token: string): Promise<WardenLoggedInUserWrapper<T>> {
+    Logger.info('Warden: executeValidationTokenBasedLogin : %j : %s ', contact, token);
+    const resp: WardenLoginResults = await this.options.wardenClient.performLoginCmd({ contact: contact, expiringToken: token });
+    const rval: WardenLoggedInUserWrapper<T> = await this.processWardenLoginResults(resp);
     return rval;
   }
 }
