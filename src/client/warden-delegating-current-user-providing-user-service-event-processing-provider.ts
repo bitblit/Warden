@@ -23,34 +23,34 @@ export class WardenDelegatingCurrentUserProvidingUserServiceEventProcessingProvi
     return this._currentUserSubject;
   }
 
-  public async onAutomaticLogout(): Promise<void> {
+  public onAutomaticLogout(): void {
     if (this.wrapped) {
-      await this.wrapped.onAutomaticLogout();
+      this.wrapped.onAutomaticLogout();
     }
   }
 
-  public async onAutomaticTokenRefresh(refreshUser: WardenLoggedInUserWrapper<T>): Promise<void> {
+  public onAutomaticTokenRefresh(refreshUser: WardenLoggedInUserWrapper<T>): void {
     if (this.wrapped) {
-      await this.wrapped.onAutomaticTokenRefresh(refreshUser);
+      this.wrapped.onAutomaticTokenRefresh(refreshUser);
     }
   }
 
-  public async onLoginFailure(reason: string): Promise<void> {
+  public onLoginFailure(reason: string): void {
     if (this.wrapped) {
-      await this.wrapped.onLoginFailure(reason);
+      this.wrapped.onLoginFailure(reason);
     }
   }
 
-  public async onLogout(): Promise<void> {
+  public onLogout(): void {
     if (this.wrapped) {
-      await this.wrapped.onLogout();
+      this.wrapped.onLogout();
     }
     this.currentUserSubject.next(null);
   }
 
-  public async onSuccessfulLogin(newUser: WardenLoggedInUserWrapper<T>): Promise<void> {
+  public onSuccessfulLogin(newUser: WardenLoggedInUserWrapper<T>): void {
     if (this.wrapped) {
-      await this.wrapped.onSuccessfulLogin(newUser);
+      this.wrapped.onSuccessfulLogin(newUser);
     }
     this.currentUserSubject.next(newUser);
   }

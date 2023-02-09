@@ -29,7 +29,7 @@ export class WardenUserService<T> {
       this.options.loggedInUserProvider.logOutUser();
     } else {
       // Fire the login event in case anything needs to know about the current user
-      this.options.eventProcessor.onSuccessfulLogin(stored).then(No.op);
+      this.options.eventProcessor.onSuccessfulLogin(stored);
     }
 
     const timerSeconds: number = this.options.loginCheckTimerPingSeconds || 2.5;
@@ -63,7 +63,7 @@ export class WardenUserService<T> {
         if (this.autoRefreshEnabled) {
           Logger.info('Under threshold, initiating auto-refresh');
           const result: WardenLoggedInUserWrapper<T> = await this.refreshToken();
-          await this.options.eventProcessor.onAutomaticTokenRefresh(result);
+          this.options.eventProcessor.onAutomaticTokenRefresh(result);
         } else {
           Logger.info('Under threshold, initiating auto-logout');
           await this.logout();
@@ -72,9 +72,9 @@ export class WardenUserService<T> {
     }
   }
 
-  public async logout(): Promise<void> {
+  public logout(): void {
     this.options.loggedInUserProvider.logOutUser();
-    await this.options.eventProcessor.onLogout();
+    this.options.eventProcessor.onLogout();
   }
 
   public static wrapperIsExpired(value: WardenLoggedInUserWrapper<any>): boolean {
@@ -136,11 +136,11 @@ export class WardenUserService<T> {
     return t ? t.exp - Math.floor(Date.now() / 1000) : null;
   }
 
-  private async updateLoggedInUserFromTokenString(token: string): Promise<WardenLoggedInUserWrapper<T>> {
+  private updateLoggedInUserFromTokenString(token: string): WardenLoggedInUserWrapper<T> {
     let rval: WardenLoggedInUserWrapper<T> = null;
     if (StringRatchet.trimToNull(token)) {
       Logger.info('Called updateLoggedInUserFromTokenString with empty string - logging out');
-      await this.logout();
+      this.logout();
     } else {
       const parsed: WardenJwtToken<T> = jwt_decode<WardenJwtToken<T>>(token);
       if (parsed) {
@@ -149,10 +149,10 @@ export class WardenUserService<T> {
           jwtToken: token,
           expirationEpochSeconds: parsed.exp,
         };
-        await this.options.eventProcessor.onSuccessfulLogin(rval);
+        this.options.eventProcessor.onSuccessfulLogin(rval);
       } else {
         Logger.warn('Failed to parse token %s - ignoring login and triggering failure');
-        await this.options.eventProcessor.onLoginFailure('Could not parse token string');
+        this.options.eventProcessor.onLoginFailure('Could not parse token string');
       }
     }
     return rval;

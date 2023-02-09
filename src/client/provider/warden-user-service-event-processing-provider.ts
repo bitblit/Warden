@@ -1,4 +1,3 @@
-import { WardenJwtToken } from '../../common';
 import { WardenLoggedInUserWrapper } from './warden-logged-in-user-wrapper';
 
 /**
@@ -6,10 +5,10 @@ import { WardenLoggedInUserWrapper } from './warden-logged-in-user-wrapper';
  */
 
 export interface WardenUserServiceEventProcessingProvider<T> {
-  onLogout(): Promise<void>;
-  onSuccessfulLogin(newUser: WardenLoggedInUserWrapper<T>): Promise<void>;
-  onLoginFailure(reason: string): Promise<void>;
+  onLogout(): void;
+  onSuccessfulLogin(newUser: WardenLoggedInUserWrapper<T>): void;
+  onLoginFailure(reason: string): void;
 
-  onAutomaticTokenRefresh(refreshUser: WardenLoggedInUserWrapper<T>): Promise<void>;
-  onAutomaticLogout(): Promise<void>;
+  onAutomaticTokenRefresh(refreshUser: WardenLoggedInUserWrapper<T>): void;
+  onAutomaticLogout(): void;
 }
