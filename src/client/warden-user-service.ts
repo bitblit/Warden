@@ -138,7 +138,7 @@ export class WardenUserService<T> {
 
   private updateLoggedInUserFromTokenString(token: string): WardenLoggedInUserWrapper<T> {
     let rval: WardenLoggedInUserWrapper<T> = null;
-    if (StringRatchet.trimToNull(token)) {
+    if (!StringRatchet.trimToNull(token)) {
       Logger.info('Called updateLoggedInUserFromTokenString with empty string - logging out');
       this.logout();
     } else {
@@ -177,19 +177,22 @@ export class WardenUserService<T> {
 
   public async executeValidationTokenBasedLogin(contact: WardenContact, token: string): Promise<WardenLoggedInUserWrapper<T>> {
     let rval: WardenLoggedInUserWrapper<T> = null;
+    Logger.info('Warden: executeValidationTokenBasedLogin : %j : %s ', contact, token);
     const resp: WardenLoginResults = await this.options.wardenClient.performLoginCmd({ contact: contact, expiringToken: token });
     if (resp) {
+      Logger.info('Warden: response : %j ', resp);
       if (resp.jwtToken) {
+        Logger.info('Applying login');
         rval = await this.updateLoggedInUserFromTokenString(resp.jwtToken);
       } else if (resp.error) {
-        await this.options.eventProcessor.onLoginFailure(resp.error);
+        this.options.eventProcessor.onLoginFailure(resp.error);
       } else {
         Logger.error('Response contained neither token nor error');
-        await this.options.eventProcessor.onLoginFailure('Response contained neither token nor error');
+        this.options.eventProcessor.onLoginFailure('Response contained neither token nor error');
       }
     } else {
       Logger.error('Login call failed');
-      await this.options.eventProcessor.onLoginFailure('Login call returned null');
+      this.options.eventProcessor.onLoginFailure('Login call returned null');
     }
     return rval;
   }
