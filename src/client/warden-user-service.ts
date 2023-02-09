@@ -142,6 +142,7 @@ export class WardenUserService<T> {
       Logger.info('Called updateLoggedInUserFromTokenString with empty string - logging out');
       this.logout();
     } else {
+      Logger.info('updateLoggedInUserFromTokenString : %s', token);
       const parsed: WardenJwtToken<T> = jwt_decode<WardenJwtToken<T>>(token);
       if (parsed) {
         rval = {
@@ -149,6 +150,7 @@ export class WardenUserService<T> {
           jwtToken: token,
           expirationEpochSeconds: parsed.exp,
         };
+        this.options.loggedInUserProvider.setLoggedInUserWrapper(rval);
         this.options.eventProcessor.onSuccessfulLogin(rval);
       } else {
         Logger.warn('Failed to parse token %s - ignoring login and triggering failure');
