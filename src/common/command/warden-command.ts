@@ -11,6 +11,7 @@ export interface WardenCommand {
   removeWebAuthnRegistration?: RemoveWebAuthnRegistration;
   sendExpiringValidationToken?: WardenContact;
   addWebAuthnRegistrationToLoggedInUser?: WebAuthnObjectWrapper;
+  addContactToLoggedInUser?: WardenContact;
 
   performLogin?: WardenLoginRequest;
   refreshJwtToken?: string;

@@ -88,6 +88,14 @@ export class WardenClient {
     return rval.sendExpiringValidationToken;
   }
 
+  public async addContactToLoggedInUser(contact: WardenContact): Promise<boolean> {
+    const cmd: WardenCommand = {
+      addContactToLoggedInUser: contact,
+    };
+    const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
+    return rval.addContactToLoggedInUser;
+  }
+
   public async addWebAuthnRegistrationToLoggedInUser(data: RegistrationResponseJSON): Promise<boolean> {
     const cmd: WardenCommand = {
       addWebAuthnRegistrationToLoggedInUser: {

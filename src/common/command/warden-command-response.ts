@@ -8,6 +8,7 @@ export interface WardenCommandResponse {
   removeWebAuthnRegistration?: boolean;
   sendExpiringValidationToken?: boolean;
   addWebAuthnRegistrationToLoggedInUser?: boolean;
+  addContactToLoggedInUser?: boolean;
   performLogin?: WardenLoginResults;
   refreshJwtToken?: string;
 

@@ -7,6 +7,7 @@ import { WardenContact } from '../common/model/warden-contact';
 import { WardenJwtToken } from '../common/model/warden-jwt-token';
 import { WardenLoginResults } from '../common/model/warden-login-results';
 import { No, StringRatchet } from '@bitblit/ratchet/common';
+import { WardenCommand, WardenCommandResponse } from '../common';
 
 /**
  * A service that handles logging in, saving the current user, watching
@@ -34,6 +35,14 @@ export class WardenUserService<T> {
 
     const timerSeconds: number = this.options.loginCheckTimerPingSeconds || 2.5;
     this.loggedInTimerSubscription = timer(0, timerSeconds * 1000).subscribe((t) => this.checkForAutoLogoutOrRefresh(t));
+  }
+
+  public get serviceOptions(): WardenUserServiceOptions<T> {
+    return this.options;
+  }
+
+  public async addContactToLoggedInUser(contact: WardenContact): Promise<boolean> {
+    return this.options.wardenClient.addContactToLoggedInUser(contact);
   }
 
   public get autoRefreshEnabled(): boolean {

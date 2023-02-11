@@ -108,6 +108,13 @@ export class WardenService {
           origin
         );
         rval = { generateWebAuthnRegistrationChallengeForLoggedInUser: { dataAsJson: JSON.stringify(tmp) } };
+      } else if (cmd.addContactToLoggedInUser) {
+        if (!WardenUtils.validContact(cmd.addContactToLoggedInUser)) {
+          ErrorRatchet.throwFormattedErr('Cannot add, invalid contact %j', cmd.addContactToLoggedInUser);
+        } else {
+          const out: boolean = await this.addContactMethodToUser(loggedInUserId, cmd.addContactToLoggedInUser);
+          rval = { addContactToLoggedInUser: out };
+        }
       } else if (cmd.addWebAuthnRegistrationToLoggedInUser) {
         if (!StringRatchet.trimToNull(loggedInUserId)) {
           ErrorRatchet.throwFormattedErr('This requires a logged in user');
