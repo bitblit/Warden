@@ -1,4 +1,4 @@
-import { WardenJwtToken } from '../../common';
+import { WardenEntrySummary, WardenJwtToken } from '../../common';
 
 export interface WardenLoggedInUserWrapper<T> {
   userObject: WardenJwtToken<T>;

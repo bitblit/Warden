@@ -131,7 +131,12 @@ export class WardenService {
           const expirationSeconds: number = await this.opts.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
           const userData: any = await this.opts.userTokenDataProvider.fetchUserTokenData(user);
           const roles: string[] = await this.opts.userTokenDataProvider.fetchUserRoles(user);
-          const wardenToken: WardenJwtToken<any> = { userId: user.userId, user: userData, roles: roles, proxy: null };
+          const wardenToken: WardenJwtToken<any> = {
+            loginData: WardenUtils.stripWardenEntryToSummary(user),
+            user: userData,
+            roles: roles,
+            proxy: null,
+          };
           const jwtToken: string = await this.opts.jwtRatchet.createTokenString(wardenToken, expirationSeconds);
           const output: WardenLoginResults = {
             request: loginData,
@@ -144,7 +149,7 @@ export class WardenService {
         }
       } else if (cmd.refreshJwtToken) {
         const parsed: WardenJwtToken<any> = await this.opts.jwtRatchet.decodeToken(cmd.refreshJwtToken, ExpiredJwtHandling.THROW_EXCEPTION);
-        const user: WardenEntry = await this.opts.storageProvider.findEntryById(parsed.userId);
+        const user: WardenEntry = await this.opts.storageProvider.findEntryById(parsed.loginData.userId);
         const expirationSeconds: number = await this.opts.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
         const newToken: string = await this.opts.jwtRatchet.refreshJWTString(cmd.refreshJwtToken, false, expirationSeconds);
         rval = {

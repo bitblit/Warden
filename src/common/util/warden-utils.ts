@@ -3,11 +3,24 @@ import { WardenContactType } from '../model/warden-contact-type';
 import { StringRatchet } from '@bitblit/ratchet/common';
 import { WardenEntrySummary } from '../model/warden-entry-summary';
 import { WardenEntry } from '../model/warden-entry';
+import { WardenLoginRequest } from '../model/warden-login-request';
 
 export class WardenUtils {
   // Prevent instantiation
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   constructor() {}
+
+  public static validLoginRequest(req: WardenLoginRequest): boolean {
+    let rval: boolean = false;
+    if (req) {
+      if (StringRatchet.trimToNull(req.userId) || WardenUtils.validContact(req.contact)) {
+        if (StringRatchet.trimToNull(req.expiringToken) || StringRatchet.trimToNull(req.jwtTokenToRefresh) || req.webAuthn) {
+          rval = true;
+        }
+      }
+    }
+    return rval;
+  }
 
   public static validContact(contact: WardenContact): boolean {
     let rval: boolean = false;
