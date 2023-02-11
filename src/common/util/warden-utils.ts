@@ -22,6 +22,27 @@ export class WardenUtils {
     return rval;
   }
 
+  public static stringToWardenContact(input: string): WardenContact {
+    let rval: WardenContact = null;
+    const type: WardenContactType = WardenUtils.stringToContactType(input);
+    if (type) {
+      rval = {
+        type: type,
+        value: input,
+      };
+    }
+    return rval;
+  }
+
+  public static stringToContactType(input: string): WardenContactType {
+    let rval: WardenContactType = null;
+    if (StringRatchet.trimToNull(input)) {
+      rval = WardenUtils.stringIsEmailAddress(input) ? WardenContactType.EmailAddress : null;
+      rval = !rval && WardenUtils.stringIsPhoneNumber(input) ? WardenContactType.TextCapablePhoneNumber : null;
+    }
+    return rval;
+  }
+
   public static validContact(contact: WardenContact): boolean {
     let rval: boolean = false;
     if (contact?.type && StringRatchet.trimToNull(contact?.value)) {
