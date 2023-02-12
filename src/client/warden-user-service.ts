@@ -219,7 +219,10 @@ export class WardenUserService<T> {
   private updateRecentLoginsFromLoggedInUserWrapper(res: WardenLoggedInUserWrapper<T>): void {
     // Only store if we have a provider, and it was a successful login
     if (this.options.recentLoginProvider) {
+      Logger.info('UserService : Saving recent login %j', res);
       this.options.recentLoginProvider.saveRecentLogin(res.userObject.loginData);
+    } else {
+      Logger.info('Not saving recent login - no storage configured');
     }
   }
 

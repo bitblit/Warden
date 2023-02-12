@@ -16,6 +16,7 @@ export abstract class WardenClientAbstractRecentLoginProvider implements WardenC
         user: entry,
         lastLoginEpochMS: Date.now(),
       });
+      this.updateCache(list);
     } else {
       Logger.warn('Cannot save recent login - no login provided :  %s', entry);
     }
