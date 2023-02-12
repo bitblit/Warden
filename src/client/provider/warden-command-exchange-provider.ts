@@ -4,5 +4,5 @@
  */
 
 export interface WardenCommandExchangeProvider {
-  sendCommand(cmdString: string): Promise<string>;
+  sendCommand(cmdString: string, jwtToken: string): Promise<string>;
 }

@@ -3,7 +3,7 @@ import { WardenCommand } from '../common/command/warden-command';
 import { WardenContact } from '../common/model/warden-contact';
 import { WardenCommandExchangeProvider } from './provider/warden-command-exchange-provider';
 import { WardenCommandResponse } from '../common/command/warden-command-response';
-import { ErrorRatchet, Logger, StringRatchet } from '@bitblit/ratchet/common';
+import { ErrorRatchet, Logger, RequireRatchet, StringRatchet } from '@bitblit/ratchet/common';
 import {
   AuthenticationResponseJSON,
   PublicKeyCredentialCreationOptionsJSON,
@@ -13,18 +13,17 @@ import {
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import { WardenLoginResults } from '../common/model/warden-login-results';
 import { WardenLoginRequest } from '../common/model/warden-login-request';
-import { WardenClientRecentLoginProvider } from './provider/warden-client-recent-login-provider';
+import { WardenClientCurrentLoggedInJwtTokenProvider } from './provider/warden-client-current-logged-in-jwt-token-provider';
 
 export class WardenClient {
-  constructor(private commandSender: WardenCommandExchangeProvider, private _recentLoginProvider?: WardenClientRecentLoginProvider) {}
-
-  public get recentLoginProvider(): WardenClientRecentLoginProvider {
-    return this._recentLoginProvider;
+  constructor(private commandSender: WardenCommandExchangeProvider, private jwtProvider: WardenClientCurrentLoggedInJwtTokenProvider) {
+    RequireRatchet.notNullOrUndefined(commandSender, 'commandSender');
+    RequireRatchet.notNullOrUndefined(jwtProvider, 'jwtProvider');
   }
 
   public async exchangeCommand(cmd: WardenCommand, returnErrors?: boolean): Promise<WardenCommandResponse> {
     const asString: string = JSON.stringify(cmd);
-    const resp: string = await this.commandSender.sendCommand(asString);
+    const resp: string = await this.commandSender.sendCommand(asString, this.jwtProvider.fetchCurrentLoggedInJwtToken());
     const parsed: WardenCommandResponse = JSON.parse(resp);
 
     if (parsed?.error && !returnErrors) {
@@ -43,10 +42,6 @@ export class WardenClient {
       },
     };
     const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
-
-    if (this.recentLoginProvider && StringRatchet.trimToNull(rval.createAccount)) {
-      await this.recentLoginProvider.addContactLogin(rval.createAccount, contact);
-    }
 
     return rval.createAccount;
   }
@@ -118,14 +113,6 @@ export class WardenClient {
       performLogin: login,
     };
     const cmdResponse: WardenCommandResponse = await this.exchangeCommand(loginCmd);
-    // Only store if we have a provider, and it was a successful login
-    if (this.recentLoginProvider && StringRatchet.trimToNull(cmdResponse.performLogin.jwtToken)) {
-      if (login.contact) {
-        await this.recentLoginProvider.addContactLogin(cmdResponse.performLogin.userId, login.contact);
-      } else if (login.webAuthn) {
-        await this.recentLoginProvider.addWebAuthnLogin(cmdResponse.performLogin.userId);
-      }
-    }
 
     return cmdResponse.performLogin;
   }
@@ -171,9 +158,6 @@ export class WardenClient {
   public async executeExpiringTokenBasedLogin(contact: WardenContact, expiringToken: string): Promise<WardenLoginResults> {
     let rval: WardenLoginResults = null;
     try {
-      // Add it to the list
-      //this.localStorageService.addCommonEmailAddress(emailAddress);
-
       const loginCmd: WardenLoginRequest = {
         contact: contact,
         expiringToken: expiringToken,

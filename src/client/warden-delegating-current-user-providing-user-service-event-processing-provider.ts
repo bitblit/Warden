@@ -1,6 +1,7 @@
 import { WardenUserServiceEventProcessingProvider } from './provider/warden-user-service-event-processing-provider';
 import { WardenLoggedInUserWrapper } from './provider/warden-logged-in-user-wrapper';
-import { BehaviorSubject, Subscription } from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
+import { WardenClientCurrentLoggedInJwtTokenProvider } from './provider/warden-client-current-logged-in-jwt-token-provider';
 
 /**
  * This class maintains a BehaviorSubject of the current user for things that want to be
@@ -13,11 +14,15 @@ import { BehaviorSubject, Subscription } from 'rxjs';
  * Delegates so that you still can also register other behavior, and just tack this onto it
  */
 export class WardenDelegatingCurrentUserProvidingUserServiceEventProcessingProvider<T>
-  implements WardenUserServiceEventProcessingProvider<T>
+  implements WardenUserServiceEventProcessingProvider<T>, WardenClientCurrentLoggedInJwtTokenProvider
 {
   private _currentUserSubject: BehaviorSubject<WardenLoggedInUserWrapper<T>> = new BehaviorSubject<WardenLoggedInUserWrapper<T>>(null);
 
   constructor(private wrapped?: WardenUserServiceEventProcessingProvider<T>) {}
+
+  public fetchCurrentLoggedInJwtToken(): string {
+    return this?._currentUserSubject?.getValue()?.jwtToken;
+  }
 
   public get currentUserSubject(): BehaviorSubject<WardenLoggedInUserWrapper<T>> {
     return this._currentUserSubject;

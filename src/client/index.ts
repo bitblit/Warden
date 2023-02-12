@@ -6,6 +6,7 @@ export * from './warden-client';
 export * from './warden-delegating-current-user-providing-user-service-event-processing-provider';
 export * from './warden-user-service';
 export * from './provider/warden-client-abstract-recent-login-provider';
+export * from './provider/warden-client-current-logged-in-jwt-token-provider';
 export * from './provider/warden-client-local-storage-logged-in-user-provider';
 export * from './provider/warden-client-local-storage-recent-login-provider';
 export * from './provider/warden-client-recent-login-provider';

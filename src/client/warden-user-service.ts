@@ -7,7 +7,7 @@ import { WardenContact } from '../common/model/warden-contact';
 import { WardenJwtToken } from '../common/model/warden-jwt-token';
 import { WardenLoginResults } from '../common/model/warden-login-results';
 import { No, StringRatchet } from '@bitblit/ratchet/common';
-import { WardenCommand, WardenCommandResponse } from '../common';
+import { WardenCommand, WardenCommandResponse, WardenLoginRequest } from '../common';
 
 /**
  * A service that handles logging in, saving the current user, watching
@@ -39,6 +39,16 @@ export class WardenUserService<T> {
 
   public get serviceOptions(): WardenUserServiceOptions<T> {
     return this.options;
+  }
+
+  public async createAccount(contact: WardenContact, sendCode?: boolean, label?: string, tags?: string[]): Promise<string> {
+    const rval: string = await this.options.wardenClient.createAccount(contact, sendCode, label, tags);
+
+    if (this.options.recentLoginProvider && StringRatchet.trimToNull(rval)) {
+      await this.options.recentLoginProvider.addContactLogin(rval, contact);
+    }
+
+    return rval;
   }
 
   public async addContactToLoggedInUser(contact: WardenContact): Promise<boolean> {
@@ -209,6 +219,10 @@ export class WardenUserService<T> {
   public async executeWebAuthnBasedLogin(contact: WardenContact): Promise<WardenLoggedInUserWrapper<T>> {
     const resp: WardenLoginResults = await this.options.wardenClient.executeWebAuthNLogin(contact);
     const rval: WardenLoggedInUserWrapper<T> = await this.processWardenLoginResults(resp);
+    // Only store if we have a provider, and it was a successful login
+    if (this.options.recentLoginProvider && rval?.userObject?.loginData?.userId) {
+      await this.options.recentLoginProvider.addWebAuthnLogin(rval.userObject.loginData.userId);
+    }
     return rval;
   }
 
@@ -216,6 +230,10 @@ export class WardenUserService<T> {
     Logger.info('Warden: executeValidationTokenBasedLogin : %j : %s ', contact, token);
     const resp: WardenLoginResults = await this.options.wardenClient.performLoginCmd({ contact: contact, expiringToken: token });
     const rval: WardenLoggedInUserWrapper<T> = await this.processWardenLoginResults(resp);
+    // Only store if we have a provider, and it was a successful login
+    if (this.options.recentLoginProvider && rval?.userObject?.loginData?.userId) {
+      await this.options.recentLoginProvider.addContactLogin(rval.userObject.loginData.userId, contact);
+    }
     return rval;
   }
 }
