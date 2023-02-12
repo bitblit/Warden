@@ -75,6 +75,7 @@ export class WardenUtils {
           userId: we.userId,
           userLabel: we.userLabel,
           contactMethods: we.contactMethods,
+          webAuthnAuthenticatorIds: (we.webAuthnAuthenticators || []).map((s) => s.credentialIdBase64),
         }
       : null;
     return rval;
