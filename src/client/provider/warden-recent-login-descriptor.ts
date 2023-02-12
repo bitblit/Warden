@@ -1,8 +1,6 @@
-import { WardenContact } from '../../common/model/warden-contact';
+import { WardenEntrySummary } from '../../common/model/warden-entry-summary';
 
 export interface WardenRecentLoginDescriptor {
-  userId: string;
+  user: WardenEntrySummary;
   lastLoginEpochMS: number;
-  contacts: WardenContact[];
-  webAuthn: boolean;
 }

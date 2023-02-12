@@ -1,10 +1,11 @@
 import { WardenRecentLoginDescriptor } from './warden-recent-login-descriptor';
+import { WardenEntrySummary } from '../../common/model/warden-entry-summary';
 import { WardenContact } from '../../common';
 
 export interface WardenClientRecentLoginProvider {
-  addWebAuthnLogin(userId: string);
-  addContactLogin(userId: string, contact: WardenContact): Promise<void>;
-  clearLoginsForUserId(userId: string): Promise<void>;
-  fetchAllLogins(): Promise<WardenRecentLoginDescriptor[]>;
-  clearAllLogins(): Promise<void>;
+  saveRecentLogin(entry: WardenEntrySummary): void;
+  saveNewUser(userId: string, label: string, contact: WardenContact): void;
+  removeUser(userId: string): void;
+  fetchAllLogins(): WardenRecentLoginDescriptor[];
+  clearAllLogins(): void;
 }

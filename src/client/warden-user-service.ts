@@ -45,7 +45,7 @@ export class WardenUserService<T> {
     const rval: string = await this.options.wardenClient.createAccount(contact, sendCode, label, tags);
 
     if (this.options.recentLoginProvider && StringRatchet.trimToNull(rval)) {
-      await this.options.recentLoginProvider.addContactLogin(rval, contact);
+      this.options.recentLoginProvider.saveNewUser(rval, label, contact);
     }
 
     return rval;
@@ -216,13 +216,17 @@ export class WardenUserService<T> {
     return rval;
   }
 
+  private updateRecentLoginsFromLoggedInUserWrapper(res: WardenLoggedInUserWrapper<T>): void {
+    // Only store if we have a provider, and it was a successful login
+    if (this.options.recentLoginProvider) {
+      this.options.recentLoginProvider.saveRecentLogin(res.userObject.loginData);
+    }
+  }
+
   public async executeWebAuthnBasedLogin(contact: WardenContact): Promise<WardenLoggedInUserWrapper<T>> {
     const resp: WardenLoginResults = await this.options.wardenClient.executeWebAuthNLogin(contact);
     const rval: WardenLoggedInUserWrapper<T> = await this.processWardenLoginResults(resp);
-    // Only store if we have a provider, and it was a successful login
-    if (this.options.recentLoginProvider && rval?.userObject?.loginData?.userId) {
-      await this.options.recentLoginProvider.addWebAuthnLogin(rval.userObject.loginData.userId);
-    }
+    this.updateRecentLoginsFromLoggedInUserWrapper(rval);
     return rval;
   }
 
@@ -230,10 +234,7 @@ export class WardenUserService<T> {
     Logger.info('Warden: executeValidationTokenBasedLogin : %j : %s ', contact, token);
     const resp: WardenLoginResults = await this.options.wardenClient.performLoginCmd({ contact: contact, expiringToken: token });
     const rval: WardenLoggedInUserWrapper<T> = await this.processWardenLoginResults(resp);
-    // Only store if we have a provider, and it was a successful login
-    if (this.options.recentLoginProvider && rval?.userObject?.loginData?.userId) {
-      await this.options.recentLoginProvider.addContactLogin(rval.userObject.loginData.userId, contact);
-    }
+    this.updateRecentLoginsFromLoggedInUserWrapper(rval);
     return rval;
   }
 }
