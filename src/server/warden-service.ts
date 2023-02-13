@@ -140,7 +140,9 @@ export class WardenService {
         const loginOk: boolean = await this.processLogin(loginData, origin);
         Logger.info('Performing login - login auth check was : %s', loginOk);
         if (loginOk) {
-          const user: WardenEntry = await this.opts.storageProvider.findEntryByContact(loginData.contact);
+          const user: WardenEntry = StringRatchet.trimToNull(loginData.userId)
+            ? await this.opts.storageProvider.findEntryById(loginData.userId)
+            : await this.opts.storageProvider.findEntryByContact(loginData.contact);
           const expirationSeconds: number = await this.opts.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
           const userData: any = await this.opts.userTokenDataProvider.fetchUserTokenData(user);
           const roles: string[] = await this.opts.userTokenDataProvider.fetchUserRoles(user);
@@ -461,10 +463,10 @@ export class WardenService {
     );
 
     const user: WardenEntry = StringRatchet.trimToNull(request?.userId)
-      ? await this.opts.storageProvider.findEntryById(request.userId)
+      ? await this.opts.storageProvider.findEntryById(request?.userId)
       : await this.opts.storageProvider.findEntryByContact(request.contact);
     if (!user) {
-      ErrorRatchet.throwFormattedErr('No user found for %j / %s', request.contact, request.userId);
+      ErrorRatchet.throwFormattedErr('No user found for %j / %s', request?.contact, request?.userId);
     }
 
     if (request.webAuthn) {
