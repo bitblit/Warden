@@ -5,7 +5,7 @@ import { WardenS3SingleFileStorageProviderOptions } from './warden-s3-single-fil
 import { WardenEntry } from '../../common/model/warden-entry';
 import { PutObjectOutput } from 'aws-sdk/clients/s3';
 import { S3CacheRatchet } from '@bitblit/ratchet/aws';
-import { StringRatchet } from '@bitblit/ratchet/common';
+import { ErrorRatchet, StringRatchet } from '@bitblit/ratchet/common';
 import { WardenEntrySummary } from '../../common/model/warden-entry-summary';
 import { WardenUtils } from '../../common';
 
@@ -49,7 +49,11 @@ export class WardenS3SingleFileStorageProvider implements WardenStorageProvider 
     const entry: WardenS3SingleFileStorageProviderChallengeRecord = (data.challenges || []).find(
       (d) => d.userId === userId && d.relyingPartyId === relyingPartyId
     );
-    return entry ? entry.challenge : null;
+    if (!entry) {
+      ErrorRatchet.throwFormattedErr('fetchCurrentUserChallenge: Could not find user %s', userId);
+    }
+
+    return entry.challenge;
   }
 
   public async findEntryByContact(contact: WardenContact): Promise<WardenEntry> {
@@ -101,6 +105,8 @@ export class WardenS3SingleFileStorageProvider implements WardenStorageProvider 
       challenge: challenge,
       updatedEpochMS: Date.now(),
     });
+    // Update the file
+    await this.storeDataFile(data);
     return true;
   }
 }
