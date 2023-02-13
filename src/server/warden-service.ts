@@ -447,7 +447,10 @@ export class WardenService {
     Logger.info('Processing login : %s : %j', origin, request);
     let rval: boolean = false;
     RequireRatchet.notNullOrUndefined(request, 'request');
-    RequireRatchet.true(WardenUtils.validContact(request?.contact), 'Invalid contact');
+    RequireRatchet.true(
+      !!StringRatchet.trimToNull(request?.userId) || WardenUtils.validContact(request?.contact),
+      'Invalid contact and no userId'
+    );
     RequireRatchet.true(
       !!request?.webAuthn || !!StringRatchet.trimToNull(request?.expiringToken),
       'You must provide one of webAuthn or expiringToken'
@@ -457,9 +460,11 @@ export class WardenService {
       'WebAuthn and ExpiringToken may not BOTH be set'
     );
 
-    const user: WardenEntry = await this.opts.storageProvider.findEntryByContact(request.contact);
+    const user: WardenEntry = StringRatchet.trimToNull(request?.userId)
+      ? await this.opts.storageProvider.findEntryById(request.userId)
+      : await this.opts.storageProvider.findEntryByContact(request.contact);
     if (!user) {
-      ErrorRatchet.throwFormattedErr('No user found for %j', request.contact);
+      ErrorRatchet.throwFormattedErr('No user found for %j / %s', request.contact, request.userId);
     }
 
     if (request.webAuthn) {
