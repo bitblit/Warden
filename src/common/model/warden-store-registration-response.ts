@@ -1,7 +1,9 @@
 import { WardenStoreRegistrationResponseType } from './warden-store-registration-response-type';
+import { WardenEntry } from './warden-entry';
 
 export interface WardenStoreRegistrationResponse {
-  id: string;
+  updatedEntry?: WardenEntry;
+  registrationResponseId: string;
   result: WardenStoreRegistrationResponseType;
-  notes?: string;
+  error?: string;
 }

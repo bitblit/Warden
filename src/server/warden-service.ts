@@ -121,7 +121,13 @@ export class WardenService {
         }
         const data: RegistrationResponseJSON = JSON.parse(cmd.addWebAuthnRegistrationToLoggedInUser.dataAsJson);
         const out: WardenStoreRegistrationResponse = await this.storeAuthnRegistration(loggedInUserId, origin, data);
-        rval = { addWebAuthnRegistrationToLoggedInUser: out.result === WardenStoreRegistrationResponseType.Verified };
+        if (out.updatedEntry) {
+          rval = { addWebAuthnRegistrationToLoggedInUser: WardenUtils.stripWardenEntryToSummary(out.updatedEntry) };
+        } else if (out.error) {
+          rval = { error: out.error };
+        } else {
+          rval = { error: 'Cannot happen - neither user nor error set' };
+        }
       } else if (cmd.removeWebAuthnRegistration) {
         rval = {
           removeWebAuthnRegistration: !!(await this.removeSingleWebAuthnRegistration(
@@ -318,7 +324,8 @@ export class WardenService {
       Logger.info('verifyRegistrationResponse Result : %j', verification);
 
       rval = {
-        id: data.id,
+        updatedEntry: null,
+        registrationResponseId: data.id,
         result: verification.verified ? WardenStoreRegistrationResponseType.Verified : WardenStoreRegistrationResponseType.Failed,
       };
 
@@ -342,13 +349,14 @@ export class WardenService {
         );
         user.webAuthnAuthenticators.push(newAuth);
         const storedUser: WardenEntry = await this.opts.storageProvider.saveEntry(user);
+        rval.updatedEntry = storedUser;
         Logger.info('Stored auth : %j', storedUser);
       }
     } catch (err) {
       rval = {
-        id: data.id,
+        registrationResponseId: data.id,
         result: WardenStoreRegistrationResponseType.Error,
-        notes: ErrorRatchet.safeStringifyErr(err),
+        error: ErrorRatchet.safeStringifyErr(err),
       };
     }
 

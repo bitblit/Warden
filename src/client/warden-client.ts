@@ -12,6 +12,7 @@ import {
 import { WardenLoginResults } from '../common/model/warden-login-results';
 import { WardenLoginRequest } from '../common/model/warden-login-request';
 import { WardenClientCurrentLoggedInJwtTokenProvider } from './provider/warden-client-current-logged-in-jwt-token-provider';
+import { WardenEntrySummary } from '../common';
 
 export class WardenClient {
   constructor(private commandSender: WardenCommandExchangeProvider, private jwtProvider: WardenClientCurrentLoggedInJwtTokenProvider) {
@@ -90,7 +91,7 @@ export class WardenClient {
     return rval.addContactToLoggedInUser;
   }
 
-  public async addWebAuthnRegistrationToLoggedInUser(data: RegistrationResponseJSON): Promise<boolean> {
+  public async addWebAuthnRegistrationToLoggedInUser(data: RegistrationResponseJSON): Promise<WardenEntrySummary> {
     const cmd: WardenCommand = {
       addWebAuthnRegistrationToLoggedInUser: {
         dataAsJson: JSON.stringify(data),

@@ -16,6 +16,7 @@ import {
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
 } from '@simplewebauthn/typescript-types';
+import { WardenEntrySummary } from '../common';
 
 /**
  * A service that handles logging in, saving the current user, watching
@@ -224,14 +225,18 @@ export class WardenUserService<T> {
     return rval;
   }
 
-  private updateRecentLoginsFromLoggedInUserWrapper(res: WardenLoggedInUserWrapper<T>): void {
+  private updateRecentLoginsFromWardenEntrySummary(res: WardenEntrySummary): void {
     // Only store if we have a provider, and it was a successful login
-    if (this.options.recentLoginProvider) {
+    if (this.options.recentLoginProvider && res) {
       Logger.info('UserService : Saving recent login %j', res);
-      this.options.recentLoginProvider.saveRecentLogin(res.userObject.loginData);
+      this.options.recentLoginProvider.saveRecentLogin(res);
     } else {
-      Logger.info('Not saving recent login - no storage configured');
+      Logger.info('Not saving recent login - no storage configured or no data passed');
     }
+  }
+
+  private updateRecentLoginsFromLoggedInUserWrapper(res: WardenLoggedInUserWrapper<T>): void {
+    this.updateRecentLoginsFromWardenEntrySummary(res?.userObject?.loginData);
   }
 
   public async executeWebAuthnBasedLogin(contact: WardenContact): Promise<WardenLoggedInUserWrapper<T>> {
@@ -249,11 +254,12 @@ export class WardenUserService<T> {
     return rval;
   }
 
-  public async saveCurrentDeviceAsWebAuthnForCurrentUser(): Promise<boolean> {
+  public async saveCurrentDeviceAsWebAuthnForCurrentUser(): Promise<WardenEntrySummary> {
     const input: PublicKeyCredentialCreationOptionsJSON =
       await this.options.wardenClient.generateWebAuthnRegistrationChallengeForLoggedInUser();
     const creds: RegistrationResponseJSON = await startRegistration(input);
-    const output: boolean = await this.options.wardenClient.addWebAuthnRegistrationToLoggedInUser(creds);
+    const output: WardenEntrySummary = await this.options.wardenClient.addWebAuthnRegistrationToLoggedInUser(creds);
+    this.updateRecentLoginsFromWardenEntrySummary(output);
     return output;
   }
 
