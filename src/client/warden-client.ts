@@ -10,7 +10,6 @@ import {
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
 } from '@simplewebauthn/typescript-types';
-import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import { WardenLoginResults } from '../common/model/warden-login-results';
 import { WardenLoginRequest } from '../common/model/warden-login-request';
 import { WardenClientCurrentLoggedInJwtTokenProvider } from './provider/warden-client-current-logged-in-jwt-token-provider';
@@ -101,13 +100,6 @@ export class WardenClient {
     return rval.addWebAuthnRegistrationToLoggedInUser;
   }
 
-  public async saveCurrentDeviceAsWebAuthnForCurrentUser(): Promise<boolean> {
-    const input: PublicKeyCredentialCreationOptionsJSON = await this.generateWebAuthnRegistrationChallengeForLoggedInUser();
-    const creds: RegistrationResponseJSON = await startRegistration(input);
-    const output: boolean = await this.addWebAuthnRegistrationToLoggedInUser(creds);
-    return output;
-  }
-
   public async performLoginCmd(login: WardenLoginRequest): Promise<WardenLoginResults> {
     const loginCmd: WardenCommand = {
       performLogin: login,
@@ -115,31 +107,6 @@ export class WardenClient {
     const cmdResponse: WardenCommandResponse = await this.exchangeCommand(loginCmd);
 
     return cmdResponse.performLogin;
-  }
-
-  public async executeWebAuthNLogin(contact: WardenContact): Promise<WardenLoginResults> {
-    let rval: WardenLoginResults = null;
-    try {
-      // Add it to the list
-      //this.localStorageService.addCommonEmailAddress(emailAddress);
-      const input: PublicKeyCredentialRequestOptionsJSON = await this.generateWebAuthnAuthenticationChallenge(contact);
-      Logger.info('Got login challenge : %s', input);
-      const creds: AuthenticationResponseJSON = await startAuthentication(input);
-      Logger.info('Got creds: %j', creds);
-
-      const loginCmd: WardenLoginRequest = {
-        contact: contact,
-        webAuthn: creds,
-      };
-      rval = await this.performLoginCmd(loginCmd);
-      if (rval?.jwtToken) {
-        //TODO: this.localStorageService.setJwtToken(req.jwtToken);
-        //rval = true;
-      }
-    } catch (err) {
-      Logger.error('WebauthN Failed : %s', err);
-    }
-    return rval;
   }
 
   public async refreshJwtToken(oldJwtToken: string): Promise<string> {

@@ -6,8 +6,16 @@ import { WardenLoggedInUserWrapper } from './provider/warden-logged-in-user-wrap
 import { WardenContact } from '../common/model/warden-contact';
 import { WardenJwtToken } from '../common/model/warden-jwt-token';
 import { WardenLoginResults } from '../common/model/warden-login-results';
-import { No, StringRatchet } from '@bitblit/ratchet/common';
-import { WardenCommand, WardenCommandResponse, WardenLoginRequest } from '../common';
+import { StringRatchet } from '@bitblit/ratchet/common';
+import { WardenLoginRequest } from '../common/model/warden-login-request';
+import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
+
+import {
+  AuthenticationResponseJSON,
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationResponseJSON,
+} from '@simplewebauthn/typescript-types';
 
 /**
  * A service that handles logging in, saving the current user, watching
@@ -227,7 +235,7 @@ export class WardenUserService<T> {
   }
 
   public async executeWebAuthnBasedLogin(contact: WardenContact): Promise<WardenLoggedInUserWrapper<T>> {
-    const resp: WardenLoginResults = await this.options.wardenClient.executeWebAuthNLogin(contact);
+    const resp: WardenLoginResults = await this.executeWebAuthnLoginToWardenLoginResults(contact);
     const rval: WardenLoggedInUserWrapper<T> = await this.processWardenLoginResults(resp);
     this.updateRecentLoginsFromLoggedInUserWrapper(rval);
     return rval;
@@ -238,6 +246,39 @@ export class WardenUserService<T> {
     const resp: WardenLoginResults = await this.options.wardenClient.performLoginCmd({ contact: contact, expiringToken: token });
     const rval: WardenLoggedInUserWrapper<T> = await this.processWardenLoginResults(resp);
     this.updateRecentLoginsFromLoggedInUserWrapper(rval);
+    return rval;
+  }
+
+  public async saveCurrentDeviceAsWebAuthnForCurrentUser(): Promise<boolean> {
+    const input: PublicKeyCredentialCreationOptionsJSON =
+      await this.options.wardenClient.generateWebAuthnRegistrationChallengeForLoggedInUser();
+    const creds: RegistrationResponseJSON = await startRegistration(input);
+    const output: boolean = await this.options.wardenClient.addWebAuthnRegistrationToLoggedInUser(creds);
+    return output;
+  }
+
+  public async executeWebAuthnLoginToWardenLoginResults(contact: WardenContact): Promise<WardenLoginResults> {
+    let rval: WardenLoginResults = null;
+    try {
+      // Add it to the list
+      //this.localStorageService.addCommonEmailAddress(emailAddress);
+      const input: PublicKeyCredentialRequestOptionsJSON = await this.options.wardenClient.generateWebAuthnAuthenticationChallenge(contact);
+      Logger.info('Got login challenge : %s', input);
+      const creds: AuthenticationResponseJSON = await startAuthentication(input);
+      Logger.info('Got creds: %j', creds);
+
+      const loginCmd: WardenLoginRequest = {
+        contact: contact,
+        webAuthn: creds,
+      };
+      rval = await this.options.wardenClient.performLoginCmd(loginCmd);
+      if (rval?.jwtToken) {
+        //TODO: this.localStorageService.setJwtToken(req.jwtToken);
+        //rval = true;
+      }
+    } catch (err) {
+      Logger.error('WebauthN Failed : %s', err);
+    }
     return rval;
   }
 }
