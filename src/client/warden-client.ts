@@ -45,12 +45,12 @@ export class WardenClient {
     return rval.createAccount;
   }
 
-  public async generateWebAuthnAuthenticationChallenge(contact: WardenContact): Promise<PublicKeyCredentialRequestOptionsJSON> {
+  public async generateWebAuthnAuthenticationChallengeForUserId(userId: string): Promise<PublicKeyCredentialRequestOptionsJSON> {
     const cmd: WardenCommand = {
-      generateWebAuthnAuthenticationChallenge: contact,
+      generateWebAuthnAuthenticationChallengeForUserId: userId,
     };
     const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
-    const parsed: PublicKeyCredentialRequestOptionsJSON = JSON.parse(rval.generateWebAuthnAuthenticationChallenge.dataAsJson);
+    const parsed: PublicKeyCredentialRequestOptionsJSON = JSON.parse(rval.generateWebAuthnAuthenticationChallengeForUserId.dataAsJson);
     return parsed;
   }
 

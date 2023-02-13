@@ -84,12 +84,12 @@ export class WardenService {
 
       if (cmd.sendExpiringValidationToken) {
         rval = { sendExpiringValidationToken: await this.sendExpiringValidationToken(cmd.sendExpiringValidationToken) };
-      } else if (cmd.generateWebAuthnAuthenticationChallenge) {
-        const tmp: PublicKeyCredentialRequestOptionsJSON = await this.generateWebAuthnAuthenticationChallengeForContact(
-          cmd.generateWebAuthnAuthenticationChallenge,
+      } else if (cmd.generateWebAuthnAuthenticationChallengeForUserId) {
+        const tmp: PublicKeyCredentialRequestOptionsJSON = await this.generateWebAuthnAuthenticationChallengeForUserId(
+          cmd.generateWebAuthnAuthenticationChallengeForUserId,
           origin
         );
-        rval = { generateWebAuthnAuthenticationChallenge: { dataAsJson: JSON.stringify(tmp) } };
+        rval = { generateWebAuthnAuthenticationChallengeForUserId: { dataAsJson: JSON.stringify(tmp) } };
       } else if (cmd.createAccount) {
         rval = {
           createAccount: await this.createAccount(
@@ -363,14 +363,11 @@ export class WardenService {
     return rval;
   }
 
-  // Helper method that looks up the contact
-  public async generateWebAuthnAuthenticationChallengeForContact(
-    contact: WardenContact,
+  public async generateWebAuthnAuthenticationChallengeForUserId(
+    userId: string,
     origin: string
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
-    // (Pseudocode) Retrieve the user from the database
-    // after they've logged in
-    const user: WardenEntry = await this.opts.storageProvider.findEntryByContact(contact);
+    const user: WardenEntry = await this.opts.storageProvider.findEntryById(userId);
     const rval: PublicKeyCredentialRequestOptionsJSON = await this.generateWebAuthnAuthenticationChallenge(user, origin);
     return rval;
   }

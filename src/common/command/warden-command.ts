@@ -6,7 +6,7 @@ import { WardenLoginRequest } from '../model/warden-login-request';
 
 export interface WardenCommand {
   createAccount?: CreateAccount;
-  generateWebAuthnAuthenticationChallenge?: WardenContact;
+  generateWebAuthnAuthenticationChallengeForUserId?: string;
   generateWebAuthnRegistrationChallengeForLoggedInUser?: boolean;
   removeWebAuthnRegistration?: RemoveWebAuthnRegistration;
   sendExpiringValidationToken?: WardenContact;

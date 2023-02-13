@@ -239,8 +239,8 @@ export class WardenUserService<T> {
     this.updateRecentLoginsFromWardenEntrySummary(res?.userObject?.loginData);
   }
 
-  public async executeWebAuthnBasedLogin(contact: WardenContact): Promise<WardenLoggedInUserWrapper<T>> {
-    const resp: WardenLoginResults = await this.executeWebAuthnLoginToWardenLoginResults(contact);
+  public async executeWebAuthnBasedLogin(userId: string): Promise<WardenLoggedInUserWrapper<T>> {
+    const resp: WardenLoginResults = await this.executeWebAuthnLoginToWardenLoginResults(userId);
     const rval: WardenLoggedInUserWrapper<T> = await this.processWardenLoginResults(resp);
     this.updateRecentLoginsFromLoggedInUserWrapper(rval);
     return rval;
@@ -263,18 +263,20 @@ export class WardenUserService<T> {
     return output;
   }
 
-  public async executeWebAuthnLoginToWardenLoginResults(contact: WardenContact): Promise<WardenLoginResults> {
+  public async executeWebAuthnLoginToWardenLoginResults(userId: string): Promise<WardenLoginResults> {
     let rval: WardenLoginResults = null;
     try {
       // Add it to the list
       //this.localStorageService.addCommonEmailAddress(emailAddress);
-      const input: PublicKeyCredentialRequestOptionsJSON = await this.options.wardenClient.generateWebAuthnAuthenticationChallenge(contact);
+      const input: PublicKeyCredentialRequestOptionsJSON = await this.options.wardenClient.generateWebAuthnAuthenticationChallengeForUserId(
+        userId
+      );
       Logger.info('Got login challenge : %s', input);
       const creds: AuthenticationResponseJSON = await startAuthentication(input);
       Logger.info('Got creds: %j', creds);
 
       const loginCmd: WardenLoginRequest = {
-        contact: contact,
+        userId: userId,
         webAuthn: creds,
       };
       rval = await this.options.wardenClient.performLoginCmd(loginCmd);
