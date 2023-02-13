@@ -5,7 +5,6 @@ import { WardenCommandExchangeProvider } from './provider/warden-command-exchang
 import { WardenCommandResponse } from '../common/command/warden-command-response';
 import { ErrorRatchet, Logger, RequireRatchet, StringRatchet } from '@bitblit/ratchet/common';
 import {
-  AuthenticationResponseJSON,
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
@@ -59,7 +58,8 @@ export class WardenClient {
       generateWebAuthnRegistrationChallengeForLoggedInUser: true,
     };
     const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
-    const parsed: PublicKeyCredentialCreationOptionsJSON = JSON.parse(rval.generateWebAuthnAuthenticationChallenge.dataAsJson);
+    //Logger.info('generateWebAuthnRegistrationChallengeForLoggedInUser: %j', rval);
+    const parsed: PublicKeyCredentialCreationOptionsJSON = JSON.parse(rval.generateWebAuthnRegistrationChallengeForLoggedInUser.dataAsJson);
     return parsed;
   }
 
