@@ -307,13 +307,15 @@ export class WardenService {
 
       const vrOpts: VerifyRegistrationResponseOpts = {
         response: data,
-        expectedChallenge,
+        expectedChallenge: expectedChallenge,
         expectedOrigin: origin,
         expectedRPID: rpID,
       };
 
+      Logger.info('Calling verifyRegistrationResponse: %j', vrOpts);
+
       const verification: VerifiedRegistrationResponse = await verifyRegistrationResponse(vrOpts);
-      Logger.info('Result : %j', verification);
+      Logger.info('verifyRegistrationResponse Result : %j', verification);
 
       rval = {
         id: data.id,
