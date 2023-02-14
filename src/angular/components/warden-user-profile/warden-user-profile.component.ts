@@ -6,11 +6,11 @@ import { WardenContact } from '../../../common/model/warden-contact';
 import { WardenUtils } from '../../../common/util/warden-utils';
 
 @Component({
-  selector: 'app-user-profile',
-  templateUrl: './user-profile.component.html',
-  styleUrls: ['user-profile.component.scss'],
+  selector: 'warden-user-profile',
+  templateUrl: './warden-user-profile.component.html',
+  styleUrls: ['warden-user-profile.component.scss'],
 })
-export class UserProfileComponent<T> {
+export class WardenUserProfileComponent<T> {
   public user: WardenLoggedInUserWrapper<T>;
   public timeLeftMS: string;
 

@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core';
 
-import { UserProfileComponent } from './user-profile.component';
+import { WardenUserProfileComponent } from './warden-user-profile.component';
 import { MatCardModule } from '@angular/material/card';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,6 +9,6 @@ import { MatIconModule } from '@angular/material/icon';
 
 @NgModule({
   imports: [MatCardModule, CommonModule, MatButtonModule, MatTooltipModule, MatIconModule],
-  declarations: [UserProfileComponent],
+  declarations: [WardenUserProfileComponent],
 })
-export class UserProfileModule {}
+export class WardenUserProfileModule {}
