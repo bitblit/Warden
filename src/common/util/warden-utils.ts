@@ -38,9 +38,9 @@ export class WardenUtils {
 
   public static stringToContactType(input: string): WardenContactType {
     let rval: WardenContactType = null;
-    if (StringRatchet.trimToNull(input)) {
+    if (!!StringRatchet.trimToNull(input)) {
       rval = WardenUtils.stringIsEmailAddress(input) ? WardenContactType.EmailAddress : null;
-      rval = !rval && WardenUtils.stringIsPhoneNumber(input) ? WardenContactType.TextCapablePhoneNumber : null;
+      rval = !rval && WardenUtils.stringIsPhoneNumber(input) ? WardenContactType.TextCapablePhoneNumber : rval;
     }
     return rval;
   }
