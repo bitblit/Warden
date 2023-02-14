@@ -31,7 +31,7 @@ import { WardenCommandResponse } from '../common/command/warden-command-response
 import { WardenCommand } from '../common/command/warden-command';
 import { WardenUtils } from '../common/util/warden-utils';
 import { WardenJwtToken } from '../common/model/warden-jwt-token';
-import { WardenLoginResults } from '../common';
+import { WardenEntrySummary, WardenLoginResults } from '../common';
 import { WardenDefaultUserTokenDataProvider } from './provider/warden-default-user-token-data-provider';
 import { WardenNoOpEventProcessingProvider } from './provider/warden-no-op-event-processing-provider';
 
@@ -129,12 +129,28 @@ export class WardenService {
           rval = { error: 'Cannot happen - neither user nor error set' };
         }
       } else if (cmd.removeWebAuthnRegistration) {
+        const modified: WardenEntry = await this.removeSingleWebAuthnRegistration(
+          cmd.removeWebAuthnRegistration.userId,
+          cmd.removeWebAuthnRegistration.credentialId
+        );
         rval = {
-          removeWebAuthnRegistration: !!(await this.removeSingleWebAuthnRegistration(
-            cmd.removeWebAuthnRegistration.userId,
-            cmd.removeWebAuthnRegistration.credentialId
-          )),
+          removeWebAuthnRegistration: WardenUtils.stripWardenEntryToSummary(modified),
         };
+      } else if (cmd.removeWebAuthnRegistrationFromLoggedInUser) {
+        const modified: WardenEntry = await this.removeSingleWebAuthnRegistration(
+          loggedInUserId,
+          cmd.removeWebAuthnRegistrationFromLoggedInUser
+        );
+        rval = {
+          removeWebAuthnRegistrationFromLoggedInUser: WardenUtils.stripWardenEntryToSummary(modified),
+        };
+      } else if (cmd.removeContactFromLoggedInUser) {
+        const output: WardenEntry = await this.removeContactMethodFromUser(loggedInUserId, cmd.removeContactFromLoggedInUser);
+        // wardencontact
+        rval = {
+          removeContactFromLoggedInUser: WardenUtils.stripWardenEntryToSummary(output),
+        };
+        // return WardenEntrySummary
       } else if (cmd.performLogin) {
         const loginData: WardenLoginRequest = cmd.performLogin;
         const loginOk: boolean = await this.processLogin(loginData, origin);
@@ -240,24 +256,25 @@ export class WardenService {
     return rval;
   }
 
-  /* CAW : I dont think anything uses this
-  public async generateWebAuthnRegistrationOptionsForContact(
-    contact: WardenContact,
-    origin: string
-  ): Promise<PublicKeyCredentialCreationOptionsJSON> {
-    // (Pseudocode) Retrieve the user from the database
-    // after they've logged in
-    let rval: any = null;
-    if (WardenUtils.validContact(contact) && StringRatchet.trimToNull(origin)) {
-      const entry: WardenEntry = await this.storageProvider.findEntryByContact(contact);
-      rval = this.generateWebAuthnRegistrationChallengeForLoggedInUser(entry.userId, origin);
+  // For an existing user, remove a contact method
+  public async removeContactMethodFromUser(userId: string, contact: WardenContact): Promise<WardenEntry> {
+    let rval: WardenEntry = null;
+    if (StringRatchet.trimToNull(userId) && WardenUtils.validContact(contact)) {
+      const curUser: WardenEntry = await this.opts.storageProvider.findEntryById(userId);
+      if (!curUser) {
+        ErrorRatchet.throwFormattedErr('Cannot remove contact from this user, user does not exist');
+      }
+      curUser.contactMethods = (curUser.contactMethods || []).filter((s) => s.type !== contact.type || s.value !== contact.value);
+      if (curUser.contactMethods.length === 0) {
+        ErrorRatchet.throwFormattedErr('Cannot remove the last contact method from a user');
+      }
+      await this.opts.storageProvider.saveEntry(curUser);
+      rval = await this.opts.storageProvider.findEntryById(userId);
     } else {
-      ErrorRatchet.throwFormattedErr('Cannot generate options - invalid contact');
+      ErrorRatchet.throwFormattedErr('Cannot add - invalid config : %s %j', userId, contact);
     }
     return rval;
   }
-
-   */
 
   // Used as the first step of adding a new WebAuthn device to an existing (logged in) user
   // Server creates a challenge that the device will sign

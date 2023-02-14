@@ -64,7 +64,7 @@ export class WardenClient {
     return parsed;
   }
 
-  public async removeWebAuthnRegistration(userId: string, credId: string): Promise<boolean> {
+  public async removeWebAuthnRegistration(userId: string, credId: string): Promise<WardenEntrySummary> {
     const cmd: WardenCommand = {
       removeWebAuthnRegistration: {
         userId: userId,
@@ -73,6 +73,22 @@ export class WardenClient {
     };
     const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
     return rval.removeWebAuthnRegistration;
+  }
+
+  public async removeWebAuthnRegistrationFromLoggedInUser(input: string): Promise<WardenEntrySummary> {
+    const cmd: WardenCommand = {
+      removeWebAuthnRegistrationFromLoggedInUser: input,
+    };
+    const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
+    return rval.removeWebAuthnRegistrationFromLoggedInUser;
+  }
+
+  public async removeContactFromLoggedInUser(input: WardenContact): Promise<WardenEntrySummary> {
+    const cmd: WardenCommand = {
+      removeContactFromLoggedInUser: input,
+    };
+    const rval: WardenCommandResponse = await this.exchangeCommand(cmd);
+    return rval.removeContactFromLoggedInUser;
   }
 
   public async sendExpiringValidationToken(contact: WardenContact): Promise<boolean> {

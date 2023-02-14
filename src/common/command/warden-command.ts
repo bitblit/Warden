@@ -8,10 +8,14 @@ export interface WardenCommand {
   createAccount?: CreateAccount;
   generateWebAuthnAuthenticationChallengeForUserId?: string;
   generateWebAuthnRegistrationChallengeForLoggedInUser?: boolean;
-  removeWebAuthnRegistration?: RemoveWebAuthnRegistration;
   sendExpiringValidationToken?: WardenContact;
   addWebAuthnRegistrationToLoggedInUser?: WebAuthnObjectWrapper;
   addContactToLoggedInUser?: WardenContact;
+
+  removeWebAuthnRegistrationFromLoggedInUser?: string;
+  removeContactFromLoggedInUser?: WardenContact;
+
+  removeWebAuthnRegistration?: RemoveWebAuthnRegistration;
 
   performLogin?: WardenLoginRequest;
   refreshJwtToken?: string;

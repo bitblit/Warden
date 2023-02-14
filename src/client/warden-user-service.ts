@@ -16,7 +16,7 @@ import {
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
 } from '@simplewebauthn/typescript-types';
-import { WardenEntrySummary } from '../common';
+import { WardenCommand, WardenCommandResponse, WardenEntrySummary } from '../common';
 
 /**
  * A service that handles logging in, saving the current user, watching
@@ -243,6 +243,16 @@ export class WardenUserService<T> {
     const resp: WardenLoginResults = await this.executeWebAuthnLoginToWardenLoginResults(userId);
     const rval: WardenLoggedInUserWrapper<T> = await this.processWardenLoginResults(resp);
     this.updateRecentLoginsFromLoggedInUserWrapper(rval);
+    return rval;
+  }
+
+  public async removeWebAuthnRegistrationFromLoggedInUser(input: string): Promise<WardenEntrySummary> {
+    const rval: WardenEntrySummary = await this.options.wardenClient.removeWebAuthnRegistrationFromLoggedInUser(input);
+    return rval;
+  }
+
+  public async removeContactFromLoggedInUser(input: WardenContact): Promise<WardenEntrySummary> {
+    const rval: WardenEntrySummary = await this.options.wardenClient.removeContactFromLoggedInUser(input);
     return rval;
   }
 
