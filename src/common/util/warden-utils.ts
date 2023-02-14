@@ -1,6 +1,6 @@
 import { WardenContact } from '../model/warden-contact';
 import { WardenContactType } from '../model/warden-contact-type';
-import { StringRatchet } from '@bitblit/ratchet/common';
+import { Logger, StringRatchet } from '@bitblit/ratchet/common';
 import { WardenEntrySummary } from '../model/warden-entry-summary';
 import { WardenEntry } from '../model/warden-entry';
 import { WardenLoginRequest } from '../model/warden-login-request';
@@ -30,6 +30,8 @@ export class WardenUtils {
         type: type,
         value: input,
       };
+    } else {
+      Logger.error('Failed to convert a string to a contact type', input);
     }
     return rval;
   }
