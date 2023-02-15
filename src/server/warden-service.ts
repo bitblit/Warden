@@ -181,8 +181,19 @@ export class WardenService {
       } else if (cmd.refreshJwtToken) {
         const parsed: WardenJwtToken<any> = await this.opts.jwtRatchet.decodeToken(cmd.refreshJwtToken, ExpiredJwtHandling.THROW_EXCEPTION);
         const user: WardenEntry = await this.opts.storageProvider.findEntryById(parsed.loginData.userId);
+        const userData: any = await this.opts.userTokenDataProvider.fetchUserTokenData(user);
+        const roles: string[] = await this.opts.userTokenDataProvider.fetchUserRoles(user);
         const expirationSeconds: number = await this.opts.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
-        const newToken: string = await this.opts.jwtRatchet.refreshJWTString(cmd.refreshJwtToken, false, expirationSeconds);
+        const wardenToken: WardenJwtToken<any> = {
+          loginData: WardenUtils.stripWardenEntryToSummary(user),
+          user: userData,
+          roles: roles,
+          proxy: null,
+        };
+
+        const newToken: string = await this.opts.jwtRatchet.createTokenString(wardenToken, expirationSeconds);
+        // CAW : We dont use refresh token because we want any user changes to show up in the new token
+        //const newToken: string = await this.opts.jwtRatchet.refreshJWTString(cmd.refreshJwtToken, false, expirationSeconds);
         rval = {
           refreshJwtToken: newToken,
         };

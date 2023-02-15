@@ -179,6 +179,7 @@ export class WardenUserService<T> {
           expirationEpochSeconds: parsed.exp,
         };
         this.options.loggedInUserProvider.setLoggedInUserWrapper(rval);
+        this.updateRecentLoginsFromWardenEntrySummary(parsed.loginData); // In case we have a recent logins tracker
         this.options.eventProcessor.onSuccessfulLogin(rval);
       } else {
         Logger.warn('Failed to parse token %s - ignoring login and triggering failure');
