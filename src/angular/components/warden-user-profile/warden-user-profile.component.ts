@@ -16,7 +16,7 @@ import { WardenDelegatingCurrentUserProvidingUserServiceEventProcessingProvider 
   standalone: true,
   imports: [MatCardModule, CommonModule, MatButtonModule, MatTooltipModule, MatIconModule],
   templateUrl: './warden-user-profile.component.html',
-  styleUrls: ['warden-user-profile.component.scss'],
+  styleUrls: ['./warden-user-profile.component.scss'],
 })
 export class WardenUserProfileComponent<T> {
   public user: WardenLoggedInUserWrapper<T>;
