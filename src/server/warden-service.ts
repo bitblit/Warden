@@ -31,8 +31,8 @@ import { WardenCommandResponse } from '../common/command/warden-command-response
 import { WardenCommand } from '../common/command/warden-command';
 import { WardenUtils } from '../common/util/warden-utils';
 import { WardenJwtToken } from '../common/model/warden-jwt-token';
-import { WardenEntrySummary, WardenLoginResults } from '../common';
-import { WardenDefaultUserTokenDataProvider } from './provider/warden-default-user-token-data-provider';
+import { WardenLoginResults, WardenUserDecoration } from '../common';
+import { WardenDefaultUserDecorationProvider } from './provider/warden-default-user-decoration-provider';
 import { WardenNoOpEventProcessingProvider } from './provider/warden-no-op-event-processing-provider';
 
 export class WardenService {
@@ -49,7 +49,7 @@ export class WardenService {
     RequireRatchet.notNullOrUndefined(inOptions.jwtRatchet, 'options.jwtRatchet');
 
     this.opts = Object.assign(
-      { userTokenDataProvider: new WardenDefaultUserTokenDataProvider(), eventProcessor: new WardenNoOpEventProcessingProvider() },
+      { userTokenDataProvider: new WardenDefaultUserDecorationProvider(), eventProcessor: new WardenNoOpEventProcessingProvider() },
       inOptions
     );
 
@@ -159,16 +159,14 @@ export class WardenService {
           const user: WardenEntry = StringRatchet.trimToNull(loginData.userId)
             ? await this.opts.storageProvider.findEntryById(loginData.userId)
             : await this.opts.storageProvider.findEntryByContact(loginData.contact);
-          const expirationSeconds: number = await this.opts.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
-          const userData: any = await this.opts.userTokenDataProvider.fetchUserTokenData(user);
-          const roles: string[] = await this.opts.userTokenDataProvider.fetchUserRoles(user);
+          const decoration: WardenUserDecoration<any> = await this.opts.userDecorationProvider.fetchDecoration(user);
           const wardenToken: WardenJwtToken<any> = {
             loginData: WardenUtils.stripWardenEntryToSummary(user),
-            user: userData,
-            roles: roles,
+            user: decoration.userTokenData,
+            roles: WardenUtils.teamRolesToRoles(decoration.userTeamRoles),
             proxy: null,
           };
-          const jwtToken: string = await this.opts.jwtRatchet.createTokenString(wardenToken, expirationSeconds);
+          const jwtToken: string = await this.opts.jwtRatchet.createTokenString(wardenToken, decoration.userTokenExpirationSeconds);
           const output: WardenLoginResults = {
             request: loginData,
             userId: user.userId,
@@ -181,17 +179,15 @@ export class WardenService {
       } else if (cmd.refreshJwtToken) {
         const parsed: WardenJwtToken<any> = await this.opts.jwtRatchet.decodeToken(cmd.refreshJwtToken, ExpiredJwtHandling.THROW_EXCEPTION);
         const user: WardenEntry = await this.opts.storageProvider.findEntryById(parsed.loginData.userId);
-        const userData: any = await this.opts.userTokenDataProvider.fetchUserTokenData(user);
-        const roles: string[] = await this.opts.userTokenDataProvider.fetchUserRoles(user);
-        const expirationSeconds: number = await this.opts.userTokenDataProvider.fetchUserTokenExpirationSeconds(user);
+        const decoration: WardenUserDecoration<any> = await this.opts.userDecorationProvider.fetchDecoration(user);
         const wardenToken: WardenJwtToken<any> = {
           loginData: WardenUtils.stripWardenEntryToSummary(user),
-          user: userData,
-          roles: roles,
+          user: decoration.userTokenData,
+          roles: WardenUtils.teamRolesToRoles(decoration.userTeamRoles),
           proxy: null,
         };
 
-        const newToken: string = await this.opts.jwtRatchet.createTokenString(wardenToken, expirationSeconds);
+        const newToken: string = await this.opts.jwtRatchet.createTokenString(wardenToken, decoration.userTokenExpirationSeconds);
         // CAW : We dont use refresh token because we want any user changes to show up in the new token
         //const newToken: string = await this.opts.jwtRatchet.refreshJWTString(cmd.refreshJwtToken, false, expirationSeconds);
         rval = {

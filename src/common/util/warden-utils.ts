@@ -4,6 +4,7 @@ import { Logger, StringRatchet } from '@bitblit/ratchet/common';
 import { WardenEntrySummary } from '../model/warden-entry-summary';
 import { WardenEntry } from '../model/warden-entry';
 import { WardenLoginRequest } from '../model/warden-login-request';
+import { WardenTeamRole } from '../model/warden-team-role';
 
 export class WardenUtils {
   // Prevent instantiation
@@ -32,6 +33,36 @@ export class WardenUtils {
       };
     } else {
       Logger.error('Failed to convert a string to a contact type', input);
+    }
+    return rval;
+  }
+
+  public static teamRolesToRoles(teamRoles: WardenTeamRole[]): string[] {
+    const rval: string[] = teamRoles?.length ? teamRoles.map((t) => WardenUtils.teamRoleToRoleString(t)) : [];
+    return rval;
+  }
+
+  public static roleStringsToTeamRoles(roles: string[]): WardenTeamRole[] {
+    const rval: WardenTeamRole[] = roles?.length ? roles.map((t) => WardenUtils.roleStringToTeamRole(t)) : [];
+    return rval;
+  }
+
+  public static roleStringToTeamRole(role: string): WardenTeamRole {
+    let rval: WardenTeamRole = null;
+    if (role && role.indexOf('_/_') >= 0) {
+      const sp: string[] = role.split('_/_');
+      rval = {
+        team: sp[0],
+        role: sp[1],
+      };
+    }
+    return rval;
+  }
+
+  public static teamRoleToRoleString(tr: WardenTeamRole): string {
+    let rval: string = null;
+    if (tr?.role && tr.team) {
+      rval = tr.team + '_/_' + tr.role;
     }
     return rval;
   }

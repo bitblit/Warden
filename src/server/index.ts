@@ -4,7 +4,7 @@
 
 export * from './warden-service-options';
 export * from './warden-service';
-export * from './provider/warden-default-user-token-data-provider';
+export * from './provider/warden-default-user-decoration-provider';
 export * from './provider/warden-event-processing-provider';
 export * from './provider/warden-mailer-message-sending-provider-options';
 export * from './provider/warden-mailer-message-sending-provider';
@@ -15,4 +15,4 @@ export * from './provider/warden-s3-single-file-storage-provider';
 export * from './provider/warden-storage-provider';
 export * from './provider/warden-twilio-text-message-sending-provider-options';
 export * from './provider/warden-twilio-text-message-sending-provider';
-export * from './provider/warden-user-token-data-provider';
+export * from './provider/warden-user-decoration-provider';

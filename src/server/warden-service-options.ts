@@ -2,7 +2,7 @@ import { WardenStorageProvider } from './provider/warden-storage-provider';
 import { WardenMessageSendingProvider } from './provider/warden-message-sending-provider';
 import { ExpiringCodeProvider } from '@bitblit/ratchet/aws';
 import { JwtRatchetLike } from '@bitblit/ratchet/common';
-import { WardenUserTokenDataProvider } from './provider/warden-user-token-data-provider';
+import { WardenUserDecorationProvider } from './provider/warden-user-decoration-provider';
 import { WardenEventProcessingProvider } from './provider/warden-event-processing-provider';
 
 export interface WardenServiceOptions {
@@ -14,6 +14,6 @@ export interface WardenServiceOptions {
   messageSendingProviders: WardenMessageSendingProvider<any>[];
   expiringCodeProvider: ExpiringCodeProvider;
   jwtRatchet: JwtRatchetLike;
-  userTokenDataProvider?: WardenUserTokenDataProvider<any>;
+  userDecorationProvider?: WardenUserDecorationProvider<any>;
   eventProcessor?: WardenEventProcessingProvider;
 }

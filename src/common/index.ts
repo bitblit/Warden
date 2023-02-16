@@ -17,6 +17,8 @@ export * from './model/warden-login-request';
 export * from './model/warden-login-results';
 export * from './model/warden-store-registration-response-type';
 export * from './model/warden-store-registration-response';
+export * from './model/warden-team-role';
+export * from './model/warden-user-decoration';
 export * from './model/warden-web-authn-entry';
 export * from './model/warden-web-authn-transport-future-type';
 export * from './util/warden-utils';

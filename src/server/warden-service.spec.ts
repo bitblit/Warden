@@ -7,7 +7,7 @@ import { WardenMessageSendingProvider } from './provider/warden-message-sending-
 import { WardenEntry } from '../common/model/warden-entry';
 import { ExpiringCodeProvider } from '@bitblit/ratchet/aws';
 import { JwtRatchetLike } from '@bitblit/ratchet/common';
-import { WardenUserTokenDataProvider } from './provider/warden-user-token-data-provider';
+import { WardenUserDecorationProvider } from './provider/warden-user-decoration-provider';
 import { WardenEventProcessingProvider } from './provider/warden-event-processing-provider';
 
 let mockJwtRatchet: jest.Mocked<JwtRatchetLike>;
@@ -33,7 +33,7 @@ describe('#WardenService', () => {
       messageSendingProviders: [mockWardenEmailSender],
       expiringCodeProvider: mockExpiringCodeProvider,
       jwtRatchet: mockJwtRatchet,
-      userTokenDataProvider: undefined,
+      userDecorationProvider: undefined,
       eventProcessor: undefined,
     };
 
