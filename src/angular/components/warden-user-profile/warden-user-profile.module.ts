@@ -13,4 +13,4 @@ import { WardenUserProfileComponent } from './warden-user-profile.component';
   declarations: [WardenUserProfileComponent],
   exports: [WardenUserProfileComponent],
 })
-export class UserProfileModule {}
+export class WardenUserProfileModule {}
