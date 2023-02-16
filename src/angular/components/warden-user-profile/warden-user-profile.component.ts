@@ -5,12 +5,16 @@ import { WardenUserService } from '../../../client/warden-user-service';
 import { WardenContact } from '../../../common/model/warden-contact';
 import { WardenUtils } from '../../../common/util/warden-utils';
 
+/*
 @Component({
   selector: 'warden-user-profile',
   templateUrl: './warden-user-profile.component.html',
   styleUrls: ['warden-user-profile.component.scss'],
 })
+
+ */
 export class WardenUserProfileComponent<T> {
+  /*
   public user: WardenLoggedInUserWrapper<T>;
   public timeLeftMS: string;
 
@@ -62,4 +66,6 @@ export class WardenUserProfileComponent<T> {
     await this.userService.removeWebAuthnRegistrationFromLoggedInUser(webId);
     await this.userService.refreshToken();
   }
+  
+ */
 }
