@@ -3,4 +3,3 @@
  */
 
 export * from './components/warden-user-profile/warden-user-profile.component';
-export * from './components/warden-user-profile/warden-user-profile.module';
