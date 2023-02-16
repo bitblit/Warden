@@ -1,10 +1,10 @@
 import { Component } from '@angular/core';
 import { DurationRatchet, Logger } from '@bitblit/ratchet/common';
-import { WardenLoggedInUserWrapper } from '../../../client/provider/warden-logged-in-user-wrapper';
-import { WardenUserService } from '../../../client/warden-user-service';
-import { WardenContact } from '../../../common/model/warden-contact';
-import { WardenUtils } from '../../../common/util/warden-utils';
-import { WardenDelegatingCurrentUserProvidingUserServiceEventProcessingProvider } from '../../../client/warden-delegating-current-user-providing-user-service-event-processing-provider';
+import { WardenLoggedInUserWrapper } from '../../../src/client/provider/warden-logged-in-user-wrapper';
+import { WardenUserService } from '../../../src/client/warden-user-service';
+import { WardenContact } from '../../../src/common/model/warden-contact';
+import { WardenUtils } from '../../../src/common/util/warden-utils';
+import { WardenDelegatingCurrentUserProvidingUserServiceEventProcessingProvider } from '../../../src/client/warden-delegating-current-user-providing-user-service-event-processing-provider';
 
 @Component({
   selector: 'warden-user-profile',
