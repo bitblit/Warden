@@ -4,17 +4,10 @@ import { WardenLoggedInUserWrapper } from '../../../client/provider/warden-logge
 import { WardenUserService } from '../../../client/warden-user-service';
 import { WardenContact } from '../../../common/model/warden-contact';
 import { WardenUtils } from '../../../common/util/warden-utils';
-import { MatCardModule } from '@angular/material/card';
-import { CommonModule } from '@angular/common';
-import { MatButtonModule } from '@angular/material/button';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatIconModule } from '@angular/material/icon';
 import { WardenDelegatingCurrentUserProvidingUserServiceEventProcessingProvider } from '../../../client/warden-delegating-current-user-providing-user-service-event-processing-provider';
 
 @Component({
   selector: 'warden-user-profile',
-  standalone: true,
-  imports: [MatCardModule, CommonModule, MatButtonModule, MatTooltipModule, MatIconModule],
   templateUrl: './warden-user-profile.component.html',
   styleUrls: ['./warden-user-profile.component.scss'],
 })
