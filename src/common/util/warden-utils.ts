@@ -11,6 +11,14 @@ export class WardenUtils {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   constructor() {}
 
+  public static extractContactsOfType(req: WardenEntry | WardenEntrySummary, type: WardenContactType): string[] {
+    let rval: string[] = null;
+    if (req?.contactMethods) {
+      rval = req.contactMethods.filter((s) => s.type === type).map((s) => s.value);
+    }
+    return rval;
+  }
+
   public static validLoginRequest(req: WardenLoginRequest): boolean {
     let rval: boolean = false;
     if (req) {
