@@ -57,16 +57,12 @@
     "jwt-decode": "3.1.2"
   },
   "optionalDependencies": {
-    "@angular/common": "15.1.5",
-    "@angular/core": "^15.1.5",
-    "@angular/material": "15.1.5",
     "@simplewebauthn/browser": "7.1.0",
     "@simplewebauthn/server": "7.0.1",
     "@simplewebauthn/typescript-types": "7.0.0",
     "aws-sdk": "2.1317.0"
   },
   "devDependencies": {
-    "@angular/cli": "15.1.6",
     "@types/jest": "29.4.0",
     "@types/node": "16.11.58",
     "@typescript-eslint/eslint-plugin": "5.52.0",
