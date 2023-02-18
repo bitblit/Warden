@@ -56,6 +56,15 @@ export class WardenService {
     this.expiringCodeRatchet = new ExpiringCodeRatchet(this.opts.expiringCodeProvider);
   }
 
+  public get options(): WardenServiceOptions {
+    return Object.assign({}, this.opts); // Don't allow a reader to change
+  }
+
+  // Passthru for very common use case
+  public findEntryByContact(contact: WardenContact): Promise<WardenEntry> {
+    return this.opts.storageProvider.findEntryByContact(contact);
+  }
+
   // A helper function for bridging across GraphQL as an embedded JSON command
   public async processCommandStringToString(cmdString: string, origin: string, loggedInUserId: string): Promise<string> {
     let rval: string = null;
