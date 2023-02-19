@@ -316,10 +316,10 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@bitblit/ratchet@^3.2.72":
-  version "3.2.72"
-  resolved "https://registry.yarnpkg.com/@bitblit/ratchet/-/ratchet-3.2.72.tgz#ebf38d50cc2d441fd0a05f3321cead5282d0d2ba"
-  integrity sha512-RoUND0JuPveOJLgLeCS/RPWX3onClbBPQ+XMQJmcz3OelKbLgGFKrgMia01i3rRI+AAIbCSr17lNqSBBM41tww==
+"@bitblit/ratchet@^3.2.74":
+  version "3.2.74"
+  resolved "https://registry.yarnpkg.com/@bitblit/ratchet/-/ratchet-3.2.74.tgz#1d69b3f3362e5f2dea788f00fceacded8e7e3b87"
+  integrity sha512-Qt91Gck23wDORflYGZHXPskYG7PVVpni27oIIfgXVomGAYD4JE+3/WI50YKyFG8tNlUhHDgZKFIwzOcvaAv6zQ==
   dependencies:
     browserslist "4.21.5"
     lodash "4.17.21"
@@ -1239,22 +1239,6 @@ aws-sdk@2.1316.0:
   version "2.1316.0"
   resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.1316.0.tgz#4c6cf44ec8c9eaaecfa0c7d4ea141861a246b260"
   integrity sha512-5y0PR0RcswLlDkIq2E3dF4rvCn7b7yqyVae8SzDv5tcjebwt+YCSD2jJu5Cu7nahqtpWz35I2QGD1OcLK+rlUQ==
-  dependencies:
-    buffer "4.9.2"
-    events "1.1.1"
-    ieee754 "1.1.13"
-    jmespath "0.16.0"
-    querystring "0.2.0"
-    sax "1.2.1"
-    url "0.10.3"
-    util "^0.12.4"
-    uuid "8.0.0"
-    xml2js "0.4.19"
-
-aws-sdk@2.1317.0:
-  version "2.1317.0"
-  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.1317.0.tgz#b1534696b840654a55660eed467ed7ddbbb2e1d1"
-  integrity sha512-9gQ3ApcG4OhM19LEcmd/1jclwHvI3jjVaFYNQkY88g2eFJDW5T8qP+u2epdv+o3bPWxzg0TcyPhOSlN4xAnIJQ==
   dependencies:
     buffer "4.9.2"
     events "1.1.1"

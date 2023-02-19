@@ -53,14 +53,14 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@bitblit/ratchet": "^3.2.72",
+    "@bitblit/ratchet": "^3.2.74",
     "jwt-decode": "3.1.2"
   },
   "optionalDependencies": {
     "@simplewebauthn/browser": "7.1.0",
     "@simplewebauthn/server": "7.0.1",
     "@simplewebauthn/typescript-types": "7.0.0",
-    "aws-sdk": "2.1317.0"
+    "aws-sdk": "2.1316.0"
   },
   "devDependencies": {
     "@types/jest": "29.4.0",
