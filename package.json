@@ -53,7 +53,7 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "@bitblit/ratchet": "^4.0.51-alpha",
+    "@bitblit/ratchet": "^4.0.52-alpha",
     "jwt-decode": "3.1.2"
   },
   "optionalDependencies": {

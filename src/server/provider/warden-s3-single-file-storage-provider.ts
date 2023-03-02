@@ -28,7 +28,7 @@ export class WardenS3SingleFileStorageProvider implements WardenStorageProvider 
 
   public async fetchDataFile(): Promise<WardenS3SingleFileStorageProviderDataFile> {
     let data: WardenS3SingleFileStorageProviderDataFile =
-      await this.ratchet.readCacheFileToObject<WardenS3SingleFileStorageProviderDataFile>(this.options.dataFileKey);
+      await this.ratchet.fetchCacheFileAsObject<WardenS3SingleFileStorageProviderDataFile>(this.options.dataFileKey);
     data = data || {
       entries: [],
       challenges: [],
