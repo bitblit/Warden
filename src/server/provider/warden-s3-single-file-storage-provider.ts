@@ -3,7 +3,7 @@ import { WardenContact } from '../../common/model/warden-contact';
 import { WardenStorageProvider } from './warden-storage-provider';
 import { WardenS3SingleFileStorageProviderOptions } from './warden-s3-single-file-storage-provider-options';
 import { WardenEntry } from '../../common/model/warden-entry';
-import { PutObjectOutput } from 'aws-sdk/clients/s3';
+import { PutObjectOutput, S3Client } from '@aws-sdk/client-s3';
 import { S3CacheRatchet } from '@bitblit/ratchet/aws';
 import { ErrorRatchet, StringRatchet } from '@bitblit/ratchet/common';
 import { WardenEntrySummary } from '../../common/model/warden-entry-summary';
@@ -16,7 +16,7 @@ websites, or getting a demo hacked out quickly
  */
 export class WardenS3SingleFileStorageProvider implements WardenStorageProvider {
   private ratchet: S3CacheRatchet;
-  constructor(private s3: AWS.S3, private options: WardenS3SingleFileStorageProviderOptions) {
+  constructor(private s3: S3Client, private options: WardenS3SingleFileStorageProviderOptions) {
     this.ratchet = new S3CacheRatchet(this.s3, this.options.bucket);
   }
 
